@@ -33,7 +33,8 @@ class DetectorTest {
 		git.statusPorcelainOutput = "";
 		FakeJdkHomeResolver jdkHomes = new FakeJdkHomeResolver().with("master", FAKE_JDK_HOME);
 
-		DefaultDetector detector = newDetector(Path.of("pom.xml"), ToolConfiguration.defaults(), jdkHomes,
+		DefaultDetector detector = newDetector(Path.of("pom.xml"),
+				ToolConfiguration.defaults().withExpectedJdkMajor("master", 8), jdkHomes,
 				FakeJdkVersionChecker.returning(8), new FakeVersionRepositoryClient(), git);
 
 		detector.validateEnvironment();
@@ -47,11 +48,14 @@ class DetectorTest {
 		git.branch = "master"; // expects JDK 8
 		FakeJdkHomeResolver jdkHomes = new FakeJdkHomeResolver().with("master", FAKE_JDK_HOME);
 
-		DefaultDetector detector = newDetector(Path.of("pom.xml"), ToolConfiguration.defaults(), jdkHomes,
+		DefaultDetector detector = newDetector(Path.of("pom.xml"),
+				ToolConfiguration.defaults().withExpectedJdkMajor("master", 8), jdkHomes,
 				FakeJdkVersionChecker.returning(25), new FakeVersionRepositoryClient(), git);
 
 		EnvironmentCheckException ex = assertThrows(EnvironmentCheckException.class, detector::validateEnvironment);
 		assertInstanceOf(BranchJdkMismatchException.class, ex);
+		assertEquals("25", ((BranchJdkMismatchException) ex).configuredJdkHomeVersionOrMissing(),
+				"must fail specifically on a version mismatch for a recognized branch, not an unrecognized-branch reason");
 	}
 
 	@Test
@@ -60,10 +64,13 @@ class DetectorTest {
 		git.branch = "v2.0-tc11";
 		FakeJdkHomeResolver jdkHomes = new FakeJdkHomeResolver(); // nothing configured
 
-		DefaultDetector detector = newDetector(Path.of("pom.xml"), ToolConfiguration.defaults(), jdkHomes,
+		DefaultDetector detector = newDetector(Path.of("pom.xml"),
+				ToolConfiguration.defaults().withExpectedJdkMajor("v2.0-tc11", 25), jdkHomes,
 				FakeJdkVersionChecker.returning(25), new FakeVersionRepositoryClient(), git);
 
-		assertThrows(BranchJdkMismatchException.class, detector::validateEnvironment);
+		BranchJdkMismatchException ex = assertThrows(BranchJdkMismatchException.class, detector::validateEnvironment);
+		assertEquals("unset/missing", ex.configuredJdkHomeVersionOrMissing(),
+				"must fail specifically on a missing JDK-home entry for a recognized branch, not an unrecognized-branch reason");
 	}
 
 	@Test
@@ -84,7 +91,8 @@ class DetectorTest {
 		git.branch = "master";
 		FakeJdkHomeResolver jdkHomes = new FakeJdkHomeResolver().with("master", FAKE_JDK_HOME);
 
-		DefaultDetector detector = newDetector(Path.of("pom.xml"), ToolConfiguration.defaults(), jdkHomes,
+		DefaultDetector detector = newDetector(Path.of("pom.xml"),
+				ToolConfiguration.defaults().withExpectedJdkMajor("master", 8), jdkHomes,
 				FakeJdkVersionChecker.unresolvable(), new FakeVersionRepositoryClient(), git);
 
 		assertThrows(BranchJdkMismatchException.class, detector::validateEnvironment);
@@ -97,7 +105,8 @@ class DetectorTest {
 		git.statusPorcelainOutput = " M pom.xml\n";
 		FakeJdkHomeResolver jdkHomes = new FakeJdkHomeResolver().with("master", FAKE_JDK_HOME);
 
-		DefaultDetector detector = newDetector(Path.of("pom.xml"), ToolConfiguration.defaults(), jdkHomes,
+		DefaultDetector detector = newDetector(Path.of("pom.xml"),
+				ToolConfiguration.defaults().withExpectedJdkMajor("master", 8), jdkHomes,
 				FakeJdkVersionChecker.returning(8), new FakeVersionRepositoryClient(), git);
 
 		EnvironmentCheckException ex = assertThrows(EnvironmentCheckException.class, detector::validateEnvironment);

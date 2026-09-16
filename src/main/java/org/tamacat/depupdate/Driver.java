@@ -17,7 +17,7 @@ public final class Driver {
 		if (args.length < 1) {
 			System.err.println("Usage: java -jar dependency-auto-update-tool.jar <repoRoot> "
 					+ "[toolConfigPath] [jdkHomeConfigPath]");
-			System.err.println("  repoRoot           path to the tamacat-httpd checkout to operate on (required)");
+			System.err.println("  repoRoot           path to the git-managed Maven project checkout to operate on (required)");
 			System.err.println("  toolConfigPath     default: config/tool.properties (relative to CWD)");
 			System.err.println("  jdkHomeConfigPath  default: config/jdk-home.local.properties (relative to CWD)");
 			return 2;

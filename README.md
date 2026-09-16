@@ -1,27 +1,36 @@
 # dependency-auto-update-tool
 
-A standalone, on-demand CLI tool that detects candidate Maven dependency
-updates for `tamacat-httpd`, judges compatibility by actually running
-`mvn clean verify` against each candidate, and applies validated-safe
-updates to `pom.xml` with a configurable commit/push mode.
+A standalone, on-demand CLI tool for a single-module Maven project: it
+detects candidate dependency updates, judges compatibility by actually
+running `mvn clean verify` against each candidate, and applies
+validated-safe updates to `pom.xml` with a configurable commit/push mode.
 
-This module is **intentionally not part of the main `tamacat-httpd` build**
--- there is no `<modules>` entry for it in the root `pom.xml`, and it is
-built/run independently.
+This tool is general-purpose -- it makes no assumption about which project
+it runs against beyond "a git-managed, single-module Maven project." Which
+branches it is allowed to operate on, and what JDK each one expects, is a
+policy you declare in `config/tool.properties` (see
+[Configuration](#configuration)); the tool ships no hardcoded branch list of
+its own. It was originally built for, and ships pre-configured for, its
+reference deployment: [`tamacat-httpd`](https://github.com/tamacat/tamacat-httpd)
+(branches `master` -> JDK 8, `v2.0-tc11` -> JDK 25).
 
 ## What it does, in order
 
-1. **Pre-flight**: detects the currently checked-out branch, resolves that
-   branch's configured JDK home (see [Setup](#setup) below) and confirms it
-   reports the expected major version (`master` -> 8, `v2.0-tc11` -> 25),
-   then confirms the working tree is clean. Either failure stops the run
-   immediately, before any dependency is even looked at.
-2. **Detection**: parses `pom.xml`'s direct, non-test-scope dependencies,
-   groups any that share a single `${property}` version reference (e.g. this
-   project's own `tomcat.version`, shared by `tomcat-embed-core` and
-   `tomcat-embed-jasper`) into one atomic update target, queries Maven
-   Central for each target's available versions, and filters by the
-   configured version-range policy (patch/minor/major, default patch-only).
+1. **Pre-flight**: detects the currently checked-out branch, confirms it has
+   a configured entry in `config/tool.properties` (see
+   [Configuration](#configuration)), resolves that branch's configured JDK
+   home (see [Setup](#setup) below), confirms it reports the expected major
+   version, then confirms the working tree is clean. Any failure stops the
+   run immediately, before any dependency is even looked at.
+2. **Detection**: parses `pom.xml`'s direct, non-test-scope dependencies
+   (excluding any dependency that shares the target project's own
+   `groupId` -- a sibling artifact of the same project, not a third-party
+   library), groups any that share a single `${property}` version reference
+   (e.g. tamacat-httpd's own `tomcat.version`, shared by `tomcat-embed-core`
+   and `tomcat-embed-jasper`) into one atomic update target, queries a Maven
+   repository (Maven Central by default) for each target's available
+   versions, and filters by the configured version-range policy
+   (patch/minor/major, default patch-only).
 3. **Validation**: for each candidate, temporarily rewrites `pom.xml`, runs
    `mvn clean verify` under the branch's configured JDK, and classifies the
    result as safe (`GREEN`), genuinely incompatible (`INCOMPATIBLE`), or an
@@ -32,14 +41,16 @@ built/run independently.
 5. **Reporting**: everything above is written to the console and to a
    structured report file.
 
-See `../../aidlc/spaces/default/intents/260903-dependency-auto-update/` in
-this project's AI-DLC record for the full design rationale (requirements,
-architecture decisions, business rules).
+See [`tamacat-httpd`](https://github.com/tamacat/tamacat-httpd)'s
+`aidlc/spaces/default/intents/260903-dependency-auto-update/` AI-DLC record
+for this tool's full original design rationale (requirements, architecture
+decisions, business rules) -- this tool was designed and generated inside
+that project before being extracted into its own repository.
 
 ## Building
 
 ```
-mvn -f tools/dependency-auto-update/pom.xml clean package
+mvn clean package
 ```
 
 Produces `target/dependency-auto-update-tool-1.0.0.jar` (a plain jar with a
@@ -48,18 +59,18 @@ the JDK, so no shading/fat-jar step is needed).
 
 ## Setup (once per machine, before first use)
 
-The tool validates dependency updates by actually building `tamacat-httpd`
-under **that branch's own JDK** -- `master` targets Java 8, `v2.0-tc11`
-targets Java 25 -- which is deliberately independent of whatever JDK this
-tool's own code happens to run on. You must tell it where each branch's JDK
-lives on your machine:
+The tool validates dependency updates by actually building the target
+project under **that branch's own JDK**, which is deliberately independent
+of whatever JDK this tool's own code happens to run on. You must tell it
+where each configured branch's JDK lives on your machine:
 
 ```
-cd tools/dependency-auto-update
 cp config/jdk-home.local.properties.template config/jdk-home.local.properties
 ```
 
-Then edit `config/jdk-home.local.properties` and set real paths, e.g.:
+Then edit `config/jdk-home.local.properties` and set real paths for each
+branch declared in `config/tool.properties`, e.g. (tamacat-httpd's own
+reference values):
 
 ```
 jdkHome.master=/opt/amazon-corretto-8
@@ -68,9 +79,10 @@ jdkHome.v2.0-tc11=/opt/amazon-corretto-25
 
 **This file is deliberately not committed to git** (see `.gitignore`) -- a
 JDK installation path is a fact about one machine, not a repo-wide policy
-every clone should share. If you skip this step, or point it at the wrong
-JDK, the tool fails fast at pre-flight with a clear `BRANCH_JDK_MISMATCH`
-error rather than silently validating under the wrong Java version.
+every clone should share. If you skip this step, point it at the wrong JDK,
+or check out a branch with no entry in `config/tool.properties` at all, the
+tool fails fast at pre-flight with a clear `BRANCH_JDK_MISMATCH` error
+rather than silently validating under the wrong Java version.
 
 ## Configuration
 
@@ -79,22 +91,30 @@ Generation -- no new dependency for YAML parsing):
 
 | File | Committed? | Holds |
 |---|---|---|
-| `config/tool.properties` | Yes | Commit/push mode; per-dependency version-range policy; repository URL/timeout/report-dir overrides |
+| `config/tool.properties` | Yes | Commit/push mode; which branches this tool may operate on and each one's expected JDK major version; per-dependency version-range policy; repository URL/timeout/report-dir overrides |
 | `config/jdk-home.local.properties` | **No** (gitignored) | Per-branch JDK home paths -- machine-local, see Setup above |
 
-`config/tool.properties` ships with safe defaults (local-commit,
-patch-only) -- see the file's own comments for every key and an example.
+`config/tool.properties` ships pre-configured for this tool's reference
+deployment (tamacat-httpd's two branches, safe commit-mode/policy defaults)
+-- see the file's own comments for every key and its exact syntax. **Adopting
+this tool for a different project**: edit the `branch.<name>.expectedJdkMajor`
+entries to declare that project's own branches and their JDK targets; a
+branch with no entry is refused at pre-flight rather than silently
+validated. Note that a `policy.<groupId>:<artifactId>` key's colon **must**
+be escaped as `\:` in the file -- `java.util.Properties` treats an unescaped
+`:` as a key/value separator, same as `=` (see the file's own comment for
+why, and `ToolConfigurationTest` for the regression test).
 
 ## Running
 
 ```
-cd tools/dependency-auto-update
-java -jar target/dependency-auto-update-tool-1.0.0.jar ../..
+java -jar target/dependency-auto-update-tool-1.0.0.jar <repoRoot>
 ```
 
-The one required argument is the path to the `tamacat-httpd` checkout to
-operate on (`../..` from this module's own directory, i.e. the submodule
-root that contains `pom.xml`). Two optional arguments override the config
+The one required argument is the path to the target project's checkout to
+operate on (its `pom.xml` must sit directly at `<repoRoot>/pom.xml`, i.e. a
+single-module project or a specific module directory -- this tool does not
+walk a multi-module reactor). Two optional arguments override the config
 file paths (both otherwise resolved relative to the current working
 directory):
 
@@ -103,8 +123,7 @@ java -jar target/dependency-auto-update-tool-1.0.0.jar <repoRoot> [toolConfigPat
 ```
 
 The report file lands under `reports/` (relative to the current working
-directory, i.e. `tools/dependency-auto-update/reports/` when invoked as
-shown above) -- gitignored, one file per run.
+directory) -- gitignored, one file per run.
 
 ## Commit/push modes
 
@@ -138,12 +157,11 @@ unresolved commit failure, not a new problem.
 ## What this tool deliberately does not do
 
 - No scheduling/cron trigger -- this is on-demand logic only; run it however
-  and whenever you like (cron, a manual invocation, a future CI job).
-- No transitive-dependency scanning -- only this project's own direct,
+  and whenever you like (cron, a manual invocation, a CI job).
+- No transitive-dependency scanning -- only the target project's own direct,
   non-test-scope `pom.xml` dependencies are considered.
 - No vulnerability-database integration -- this tool's compatibility
   judgment is "does the real build/test suite still pass," not "is this
   version free of known CVEs."
-- Does not read, modify, or depend on the existing `versions-maven-plugin`
-  configuration in the main `pom.xml` -- that plugin stays exactly as it is,
-  display-only.
+- No multi-module reactor support -- it reads exactly one `pom.xml` at the
+  given `repoRoot`.

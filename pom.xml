@@ -7,14 +7,16 @@
   <version>1.0.0</version>
   <packaging>jar</packaging>
 
-  <name>tamacat-httpd Dependency Auto-Update Tool</name>
+  <name>Dependency Auto-Update Tool</name>
   <description>
-    Standalone, on-demand CLI tool that detects candidate Maven dependency
-    updates for tamacat-httpd, judges compatibility via a real
+    Standalone, on-demand CLI tool for a single-module Maven project: it
+    detects candidate dependency updates, judges compatibility via a real
     `mvn clean verify` build/test run, and applies validated-safe updates to
-    pom.xml with a configurable commit/push mode. This module is intentionally
-    NOT part of the main tamacat-httpd build (no root &lt;modules&gt; entry) and is
-    built/run independently: `mvn -f tools/dependency-auto-update/pom.xml package`.
+    pom.xml with a configurable commit/push mode. General-purpose -- which
+    branches it may operate on and their expected JDK are declared in
+    config/tool.properties, not hardcoded. Originally built for, and shipped
+    pre-configured for, its reference deployment: tamacat-httpd
+    (https://github.com/tamacat/tamacat-httpd).
   </description>
 
   <properties>

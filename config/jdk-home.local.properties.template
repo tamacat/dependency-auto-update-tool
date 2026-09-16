@@ -9,8 +9,10 @@
 #
 #   cp jdk-home.local.properties.template jdk-home.local.properties
 #
-# tamacat-httpd's two supported branches have different JDK baselines
-# (business-rules.md BR-3, verified against the live repository):
+# One entry per branch declared in ../config/tool.properties's
+# branch.<name>.expectedJdkMajor policy (business-rules.md BR-3) -- this
+# tool's own reference deployment, tamacat-httpd, declares two branches with
+# different JDK baselines, verified against the live repository:
 #   master      -> JDK 8
 #   v2.0-tc11   -> JDK 25
 #

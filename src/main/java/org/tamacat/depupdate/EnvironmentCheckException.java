@@ -35,8 +35,8 @@ final class BranchJdkMismatchException extends EnvironmentCheckException {
 			String expectedJdkVersion) {
 		super("Branch/JDK mismatch: checked-out branch '" + detectedBranch + "' expects JDK "
 				+ expectedJdkVersion + ", but the configured JDK home reports '"
-				+ configuredJdkHomeVersionOrMissing + "'. Fix the machine-local JDK-home configuration "
-				+ "(see config/jdk-home.local.properties) before running this tool.");
+				+ configuredJdkHomeVersionOrMissing + "'. Fix the branch/JDK-home configuration "
+				+ "(see config/tool.properties and config/jdk-home.local.properties) before running this tool.");
 		this.detectedBranch = detectedBranch;
 		this.configuredJdkHomeVersionOrMissing = configuredJdkHomeVersionOrMissing;
 		this.expectedJdkVersion = expectedJdkVersion;

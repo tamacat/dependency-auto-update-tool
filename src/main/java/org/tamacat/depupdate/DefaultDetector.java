@@ -59,12 +59,14 @@ public final class DefaultDetector implements Detector {
 				Thread.currentThread().interrupt();
 			}
 			throw new BranchJdkMismatchException("<unknown - branch detection failed: " + e.getMessage() + ">",
-					"n/a", "unknown branch — not one of master/v2.0-tc11");
+					"n/a", "<unknown -- branch detection itself failed>");
 		}
 
-		OptionalInt expected = BranchJdkBaseline.expectedMajorVersion(branch);
+		OptionalInt expected = configuration.expectedJdkMajorVersion(branch);
 		if (expected.isEmpty()) {
-			throw new BranchJdkMismatchException(branch, "n/a", "unknown branch — not one of master/v2.0-tc11");
+			throw new BranchJdkMismatchException(branch, "n/a",
+					"<not configured -- add branch." + branch + ".expectedJdkMajor=<n> to tool.properties "
+							+ "if this branch should be supported>");
 		}
 
 		Optional<Path> jdkHomeOpt = jdkHomeResolver.resolve(branch);
