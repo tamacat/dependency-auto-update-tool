@@ -1,0 +1,72 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.tamacat</groupId>
+  <artifactId>dependency-auto-update-tool</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+
+  <name>tamacat-httpd Dependency Auto-Update Tool</name>
+  <description>
+    Standalone, on-demand CLI tool that detects candidate Maven dependency
+    updates for tamacat-httpd, judges compatibility via a real
+    `mvn clean verify` build/test run, and applies validated-safe updates to
+    pom.xml with a configurable commit/push mode. This module is intentionally
+    NOT part of the main tamacat-httpd build (no root &lt;modules&gt; entry) and is
+    built/run independently: `mvn -f tools/dependency-auto-update/pom.xml package`.
+  </description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!--
+      This module's own Java target is deliberately independent of either
+      branch this tool validates (master = Java 8, v2.0-tc11 = Java 25; see
+      business-rules.md BR-3 in the design record). 21 is an LTS release,
+      available in this development environment, and supports the sealed
+      interfaces / records / pattern-matching switch this codebase uses.
+    -->
+    <maven.compiler.release>21</maven.compiler.release>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>6.1.3</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}-${project.version}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.15.0</version>
+      </plugin>
+      <plugin>
+        <!--
+          Bare defaults only (no configuration block); matches this
+          repository's own established Surefire convention (team.md).
+        -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>org.tamacat.depupdate.Main</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

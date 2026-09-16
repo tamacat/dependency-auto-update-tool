@@ -1,0 +1,24 @@
+# Machine-local JDK-home mapping for dependency-auto-update-tool.
+#
+# This file is DELIBERATELY NOT committed to git (see ../.gitignore) -- a JDK
+# installation path is a fact about one machine, not a repo-wide policy every
+# clone should share (tech-stack-decisions.md, NFR Requirements Q1a).
+#
+# Copy this template to "jdk-home.local.properties" (same directory) and set
+# real paths for your machine before running the tool for the first time:
+#
+#   cp jdk-home.local.properties.template jdk-home.local.properties
+#
+# tamacat-httpd's two supported branches have different JDK baselines
+# (business-rules.md BR-3, verified against the live repository):
+#   master      -> JDK 8
+#   v2.0-tc11   -> JDK 25
+#
+# The tool validates that whatever path you set here actually reports that
+# branch's expected major version (via <path>/bin/java -version) before it
+# will run any detection/validation for that branch -- it never falls back
+# to its own running JVM, which targets a modern Java version independent of
+# either branch.
+
+jdkHome.master=/path/to/your/jdk-8
+jdkHome.v2.0-tc11=/path/to/your/jdk-25
