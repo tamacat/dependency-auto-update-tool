@@ -1,8 +1,8 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { message } from '@tauri-apps/plugin-dialog';
-  import { openUrl } from '@tauri-apps/plugin-opener';
   import * as api from './api';
+  import { openExternal } from './external';
   import { date, displayName, severityLabel, updateLabel } from './format';
   import { t, type MessageKey } from './i18n';
   import type { CheckOptions, Component, JavaRequirement, JavaRule, Row } from './types';
@@ -250,7 +250,7 @@
         <div class="vuln">
           <div>
             <span class="pill sev-{vuln.severity}">{severityLabel(vuln.severity)}{vuln.score != null ? ` ${vuln.score.toFixed(1)}` : ''}</span>
-            <button class="link mono" onclick={() => openUrl(vuln.url)}>{vuln.id}</button>
+            <button class="link mono" onclick={() => openExternal(vuln.url)}>{vuln.id}</button>
             {#if cve}<span class="mono muted">{cve}</span>{/if}
           </div>
           {#if vuln.summary}<div>{vuln.summary}</div>{/if}
@@ -267,7 +267,7 @@
         <dl>
           <dt>{t('detail.product')}</dt>
           <dd>
-            <button class="link" onclick={() => openUrl(eol.link)}>{eol.productLabel}</button>
+            <button class="link" onclick={() => openExternal(eol.link)}>{eol.productLabel}</button>
             {#if eol.matchKind === 'inferred'}<span class="muted small">({t('detail.inferred')})</span>{/if}
           </dd>
           <dt>{t('detail.status')}</dt>

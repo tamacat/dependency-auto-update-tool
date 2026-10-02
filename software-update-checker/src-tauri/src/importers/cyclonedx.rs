@@ -54,6 +54,7 @@ impl Bom {
             components: self.components,
             warnings,
             includes_transitive: has_edges,
+            related_files: Vec::new(),
         }
     }
 }

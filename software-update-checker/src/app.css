@@ -201,6 +201,13 @@ input[type='number'] {
 .source {
   padding: 8px 16px 0;
 }
+.related {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
 .source .path {
   margin-left: 8px;
   font-size: calc(12px * var(--font-scale));

@@ -209,7 +209,9 @@ export function install() {
         case 'knowledge_import':
           return { added: 0, updated: 0, skipped: 0 };
         case 'knowledge_export':
-          return knowledge.length;
+          return { path: 'C:\Users\<user>\Documents\java-requirements.json', count: knowledge.length };
+        case 'export_report':
+          return `C:\Users\<user>\Documents\${a.defaultName}`;
         case 'set_language':
           language = String(a.language ?? 'ja');
           return null;
@@ -228,7 +230,6 @@ export function install() {
         case 'plugin:opener|open_url':
         case 'plugin:opener|open_path':
         case 'plugin:dialog|message':
-        case 'save_text_file':
         case 'clear_cache':
           return null;
         default:

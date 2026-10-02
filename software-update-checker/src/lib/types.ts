@@ -23,6 +23,8 @@ export interface ImportResult {
   components: Component[];
   warnings: string[];
   includesTransitive: boolean;
+  /** 同じ場所にある、より詳しい入力（pom の隣の SBOM など） */
+  relatedFiles?: string[];
 }
 
 export interface CheckOptions {

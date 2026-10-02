@@ -17,6 +17,11 @@ const REPO: &str = "https://repo1.maven.org/maven2";
 const TAIL_BYTES: u64 = 64 * 1024;
 const SAMPLE_CLASSES: usize = 3;
 const MAX_CLASS_COMPRESSED: u64 = 512 * 1024;
+/// クラスファイルは先頭 8 バイト（マジックナンバーとバージョン）しか使わない。
+/// 細工した jar による展開爆弾（圧縮 512KB → 数百 MB）を防ぐため、これ以上は展開しない。
+const MAX_INFLATED: usize = 64;
+/// 中央ディレクトリ（jar の目次）の大きさの上限。通常の jar は数百 KB 以下。
+const MAX_CENTRAL_DIRECTORY: u64 = 8 * 1024 * 1024;
 
 /// クラスファイルのメジャーバージョンを Java のバージョン表記にする。
 pub fn java_version_for_class_major(major: u16) -> Option<String> {
@@ -106,10 +111,15 @@ fn class_major_from_local_entry(local: &[u8], entry: &ZipEntry) -> Option<u16> {
         return None;
     }
     let start = 30 + u16_at(local, 26)? as usize + u16_at(local, 28)? as usize;
-    let data = local.get(start..start + entry.compressed_size as usize)?;
+    let end = start.checked_add(usize::try_from(entry.compressed_size).ok()?)?;
+    let data = local.get(start..end)?;
     let class = match entry.method {
-        0 => data.to_vec(),
-        8 => miniz_oxide::inflate::decompress_to_vec(data).ok()?,
+        0 => data.get(..MAX_INFLATED.min(data.len()))?.to_vec(),
+        // 上限に達したら、そこまでに展開できた分（先頭部分）を使う
+        8 => match miniz_oxide::inflate::decompress_to_vec_with_limit(data, MAX_INFLATED) {
+            Ok(v) => v,
+            Err(e) => e.output,
+        },
         _ => return None,
     };
     if class.get(0..4)? != [0xCA, 0xFE, 0xBA, 0xBE] {
@@ -137,11 +147,17 @@ async fn read_class_major(http: &Http, url: &str) -> Result<Option<u16>, String>
     };
 
     let (cd_offset, cd_size) = find_central_directory(&tail_body).ok_or_else(|| tr!("jar の目次を読めません", "Cannot read the jar directory"))?;
+    if cd_size == 0 || cd_size > MAX_CENTRAL_DIRECTORY {
+        return Err(tr!("jar の目次の大きさが不正です（{cd_size} バイト）", "Invalid jar directory size ({cd_size} bytes)"));
+    }
+    let truncated = || tr!("jar の目次が途中で切れています", "The jar directory is truncated");
     let cd = if cd_offset >= tail_start {
-        let from = (cd_offset - tail_start) as usize;
-        tail_body.get(from..from + cd_size as usize).ok_or_else(|| tr!("jar の目次が途中で切れています", "The jar directory is truncated"))?.to_vec()
+        let from = usize::try_from(cd_offset - tail_start).map_err(|_| truncated())?;
+        let to = from.checked_add(usize::try_from(cd_size).map_err(|_| truncated())?).ok_or_else(truncated)?;
+        tail_body.get(from..to).ok_or_else(truncated)?.to_vec()
     } else {
-        http.get_range(url, &format!("{cd_offset}-{}", cd_offset + cd_size - 1)).await?.body
+        let last = cd_offset.checked_add(cd_size - 1).ok_or_else(truncated)?;
+        http.get_range(url, &format!("{cd_offset}-{last}")).await?.body
     };
 
     let entries = parse_central_directory(&cd);
@@ -149,9 +165,8 @@ async fn read_class_major(http: &Http, url: &str) -> Result<Option<u16>, String>
     for entry in sample_classes(&entries) {
         // ローカルヘッダーの拡張領域は中央ディレクトリと長さが違うことがあるので余裕を持たせる
         let len = 30 + entry.name.len() as u64 + 1024 + entry.compressed_size;
-        let local = http
-            .get_range(url, &format!("{}-{}", entry.local_offset, entry.local_offset + len - 1))
-            .await?;
+        let Some(last) = entry.local_offset.checked_add(len - 1) else { continue };
+        let local = http.get_range(url, &format!("{}-{last}", entry.local_offset)).await?;
         if let Some(major) = class_major_from_local_entry(&local.body, entry) {
             best = Some(best.map_or(major, |b| b.max(major)));
         }
@@ -301,6 +316,28 @@ mod tests {
         assert_eq!(entries[0].name, "ch/qos/logback/core/Foo.class");
         let picked = sample_classes(&entries);
         assert_eq!(class_major_from_local_entry(&jar[picked[0].local_offset as usize..], picked[0]), Some(55));
+    }
+
+    #[test]
+    fn inflates_only_the_class_header_of_a_compression_bomb() {
+        // 0 が 50MB 続くクラス（圧縮すると 50KB 程度）。先頭だけ展開して止まること
+        let mut class = vec![0xCA, 0xFE, 0xBA, 0xBE, 0, 0, 0, 61];
+        class.resize(50 * 1024 * 1024, 0);
+        let compressed = miniz_oxide::deflate::compress_to_vec(&class, 6);
+        assert!(compressed.len() < 512 * 1024);
+        let entry = ZipEntry {
+            name: "a/B.class".into(),
+            method: 8,
+            compressed_size: compressed.len() as u64,
+            local_offset: 0,
+        };
+        let mut local = 0x0403_4b50u32.to_le_bytes().to_vec();
+        local.resize(26, 0);
+        local.extend((entry.name.len() as u16).to_le_bytes());
+        local.extend(0u16.to_le_bytes());
+        local.extend(entry.name.as_bytes());
+        local.extend(&compressed);
+        assert_eq!(class_major_from_local_entry(&local, &entry), Some(61));
     }
 
     #[test]

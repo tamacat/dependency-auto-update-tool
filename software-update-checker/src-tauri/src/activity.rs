@@ -42,11 +42,13 @@ pub struct ActivityLog {
     dir: Option<PathBuf>,
     recent: Mutex<VecDeque<LogEntry>>,
     sink: Option<Sink>,
+    /// ファイルへの追記を 1 件ずつにする（並行して書くと行が混ざるため）
+    write_lock: Mutex<()>,
 }
 
 impl ActivityLog {
     pub fn new(dir: Option<PathBuf>, sink: Option<Sink>) -> Self {
-        let log = Self { dir, recent: Mutex::new(VecDeque::new()), sink };
+        let log = Self { dir, recent: Mutex::new(VecDeque::new()), sink, write_lock: Mutex::new(()) };
         log.prune();
         log
     }
@@ -54,7 +56,7 @@ impl ActivityLog {
     /// ファイルにもイベントにも出さない（テスト用）。
     #[cfg(test)]
     pub fn disabled() -> Self {
-        Self { dir: None, recent: Mutex::new(VecDeque::new()), sink: None }
+        Self { dir: None, recent: Mutex::new(VecDeque::new()), sink: None, write_lock: Mutex::new(()) }
     }
 
     pub fn dir(&self) -> Option<&PathBuf> {
@@ -66,10 +68,12 @@ impl ActivityLog {
 
         if let Some(dir) = &self.dir {
             let file = dir.join(format!("activity-{}.jsonl", &entry.ts[..10]));
+            // 1 行を 1 回の書き込みで出し、書き込み中は他の記録を待たせる
+            let line = format!("{}\n", serde_json::to_string(&entry).unwrap_or_default());
+            let _guard = self.write_lock.lock();
             let written = std::fs::create_dir_all(dir).and_then(|_| {
                 let mut f = OpenOptions::new().create(true).append(true).open(&file)?;
-                let line = serde_json::to_string(&entry).unwrap_or_default();
-                writeln!(f, "{line}")
+                f.write_all(line.as_bytes())
             });
             if let Err(e) = written {
                 eprintln!("通信ログを書き込めません（{}）: {e}", file.display());
@@ -150,6 +154,39 @@ mod tests {
         assert_eq!(iso_utc(0), "1970-01-01T00:00:00.000Z");
         assert_eq!(iso_utc(1_710_854_871_123), "2024-03-19T13:27:51.123Z");
         assert_eq!(iso_utc(951_782_400_000), "2000-02-29T00:00:00.000Z");
+    }
+
+    #[test]
+    fn concurrent_records_do_not_interleave() {
+        let dir = std::env::temp_dir().join(format!("suc-log-concurrent-{}", std::process::id()));
+        let log = std::sync::Arc::new(ActivityLog::new(Some(dir.clone()), None));
+        let threads: Vec<_> = (0..8)
+            .map(|t| {
+                let log = log.clone();
+                std::thread::spawn(move || {
+                    for i in 0..200 {
+                        log.record(LogEntry {
+                            kind: "http".into(),
+                            outcome: "network".into(),
+                            url: Some(format!("https://example/{t}/{i}/{}", "x".repeat(300))),
+                            ..Default::default()
+                        });
+                    }
+                })
+            })
+            .collect();
+        for t in threads {
+            t.join().unwrap();
+        }
+        let mut lines = 0;
+        for f in std::fs::read_dir(&dir).unwrap() {
+            for line in std::fs::read_to_string(f.unwrap().path()).unwrap().lines() {
+                serde_json::from_str::<serde_json::Value>(line).expect("1 行 1 件の JSON であること");
+                lines += 1;
+            }
+        }
+        assert_eq!(lines, 1600);
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

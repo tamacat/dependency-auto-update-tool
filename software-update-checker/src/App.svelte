@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { open, save, ask, message } from '@tauri-apps/plugin-dialog';
+  import { open, ask, message } from '@tauri-apps/plugin-dialog';
   import { getCurrentWebview } from '@tauri-apps/api/webview';
   import * as api from './lib/api';
   import { toCsv, toJson } from './lib/export';
@@ -202,13 +202,8 @@
   async function exportAs(kind: 'csv' | 'json') {
     if (!source) return;
     const base = (source.projectName ?? 'dependencies').replace(/[^\w.-]+/g, '_');
-    const path = await save({
-      defaultPath: `${base}.${kind}`,
-      filters: [{ name: kind.toUpperCase(), extensions: [kind] }],
-    });
-    if (!path) return;
     try {
-      await api.saveTextFile(path, kind === 'csv' ? toCsv(visibleRows) : toJson(source, visibleRows));
+      await api.exportReport(kind, `${base}.${kind}`, kind === 'csv' ? toCsv(visibleRows) : toJson(source, visibleRows));
     } catch (e) {
       await message(String(e), { title: t('export.failed'), kind: 'error' });
     }
@@ -304,6 +299,16 @@
       {#each source.warnings as w}
         <div class="muted small">※ {w}</div>
       {/each}
+      {#if source.relatedFiles?.length}
+        <div class="related small">
+          {t('source.related')}
+          {#each source.relatedFiles as file (file)}
+            <button class="primary" disabled={!!busy} onclick={() => load(() => api.importFile(file), t('busy.loading'))}>
+              {t('source.loadRelated', { file: file.split(/[\\/]/).pop() ?? file })}
+            </button>
+          {/each}
+        </div>
+      {/if}
     </section>
 
     {#if view === 'list' || view === 'tree'}

@@ -37,7 +37,23 @@ pub fn generate_sbom(pom_path: &Path, log: &ActivityLog) -> Result<PathBuf, Stri
     result
 }
 
-fn run_maven(pom_path: &Path) -> Result<PathBuf, String> {
+/// `pom.xml` 以外の名前の pom（Maven リポジトリに公開された `{artifact}-{version}.pom` など）は
+/// プロジェクトのフォルダではないので、一時フォルダに pom.xml としてコピーして実行する。
+/// そうしないと、公開用リポジトリの中に target/ が作られてしまう。
+fn working_pom(pom_path: &Path) -> Result<PathBuf, String> {
+    if pom_path.file_name().and_then(|n| n.to_str()) == Some("pom.xml") {
+        return Ok(pom_path.to_path_buf());
+    }
+    let millis = crate::activity::now_millis();
+    let dir = std::env::temp_dir().join(format!("software-update-checker-mvn-{}-{millis}", std::process::id()));
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let copy = dir.join("pom.xml");
+    std::fs::copy(pom_path, &copy).map_err(|e| tr!("{} をコピーできません: {e}", "Cannot copy {}: {e}", pom_path.display()))?;
+    Ok(copy)
+}
+
+fn run_maven(original_pom: &Path) -> Result<PathBuf, String> {
+    let pom_path = &working_pom(original_pom)?;
     let project_dir = pom_path
         .parent()
         .filter(|p| !p.as_os_str().is_empty())

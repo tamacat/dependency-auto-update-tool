@@ -71,3 +71,25 @@ pub(crate) fn mark_direct(components: &mut [Component], root_children: &[String]
         c.direct = Some(root_children.contains(&c.id));
     }
 }
+
+#[cfg(test)]
+mod live_tests {
+    /// 手元のファイルを取り込んで結果を表示する確認用テスト。通常は実行しない。
+    /// `SUC_IMPORT=<pom.xml や SBOM のパス> cargo test live_import -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn live_import() {
+        let path = std::env::var("SUC_IMPORT").expect("SUC_IMPORT を指定してください");
+        let r = super::import_file(std::path::Path::new(&path)).unwrap();
+        println!("format={} components={} transitive={}", r.format, r.components.len(), r.includes_transitive);
+        for c in &r.components {
+            println!("  {} {:?} scope={:?}", c.package_name(), c.version, c.scope);
+        }
+        for w in &r.warnings {
+            println!("warning: {w}");
+        }
+        for f in &r.related_files {
+            println!("related: {f}");
+        }
+    }
+}

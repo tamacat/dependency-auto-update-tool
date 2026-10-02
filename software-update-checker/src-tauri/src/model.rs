@@ -132,6 +132,9 @@ pub struct ImportResult {
     pub warnings: Vec<String>,
     /// 推移的依存まで含んでいるか（pom.xml の直接読込では false）。
     pub includes_transitive: bool,
+    /// 同じ場所にある、より詳しい入力（pom の隣の CycloneDX SBOM など）。画面から読み込める。
+    #[serde(default)]
+    pub related_files: Vec<String>,
 }
 
 /// チェック実行時のオプション（フロントエンドの設定画面から渡る）。

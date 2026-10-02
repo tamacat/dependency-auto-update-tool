@@ -37,8 +37,9 @@ export const knowledgeDelete = (key: RuleKey) => invoke<boolean>('knowledge_dele
 
 export const knowledgeImport = (path: string) => invoke<MergeSummary>('knowledge_import', { path });
 
-export const knowledgeExport = (path: string, includeDetected: boolean) =>
-  invoke<number>('knowledge_export', { path, includeDetected });
+/** 保存先はバックエンドのダイアログで選ばせる。キャンセルなら null。 */
+export const knowledgeExport = (includeDetected: boolean) =>
+  invoke<{ path: string; count: number } | null>('knowledge_export', { includeDetected });
 
 export const setLanguage = (language: string) => invoke<void>('set_language', { language });
 
@@ -48,8 +49,9 @@ export const activityLog = () => invoke<LogEntry[]>('activity_log');
 
 export const logDirectory = () => invoke<string | null>('log_directory');
 
-export const saveTextFile = (path: string, contents: string) =>
-  invoke<void>('save_text_file', { path, contents });
+/** 保存先はバックエンドのダイアログで選ばせる。キャンセルなら null。 */
+export const exportReport = (kind: 'csv' | 'json', defaultName: string, contents: string) =>
+  invoke<string | null>('export_report', { kind, defaultName, contents });
 
 export const clearCache = () => invoke<void>('clear_cache');
 

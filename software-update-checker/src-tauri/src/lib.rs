@@ -62,7 +62,7 @@ pub fn run() {
             commands::set_language,
             commands::activity_log,
             commands::log_directory,
-            commands::save_text_file,
+            commands::export_report,
             commands::clear_cache,
         ])
         .run(tauri::generate_context!())

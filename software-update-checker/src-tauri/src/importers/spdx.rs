@@ -119,6 +119,7 @@ impl Importer for SpdxJsonImporter {
             components,
             warnings,
             includes_transitive: !edges.is_empty(),
+            related_files: Vec::new(),
         })
     }
 }

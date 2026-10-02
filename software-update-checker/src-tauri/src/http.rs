@@ -23,6 +23,8 @@ use tokio::sync::Mutex;
 
 /// 流量制御で待つ時間の合計の上限。これを超えるなら送信をあきらめる。
 const MAX_GATE_WAIT: Duration = Duration::from_secs(120);
+/// 応答本文の大きさの上限。最大の endoflife.date の製品一覧でも 3MB 程度。
+const MAX_BODY_BYTES: usize = 50 * 1024 * 1024;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Entry {
@@ -332,12 +334,28 @@ impl Http {
 
             let started = Instant::now();
             let outcome = async {
-                let res = build().timeout(Duration::from_secs(s.timeout_secs)).send().await.map_err(|e| e.to_string())?;
+                let mut res = build().timeout(Duration::from_secs(s.timeout_secs)).send().await.map_err(|e| e.to_string())?;
                 let status = res.status().as_u16();
                 let header = |name| res.headers().get(name).and_then(|v: &reqwest::header::HeaderValue| v.to_str().ok());
                 let total_size = header(reqwest::header::CONTENT_RANGE).and_then(|v| v.rsplit('/').next()?.parse().ok());
                 let retry_after = header(reqwest::header::RETRY_AFTER).and_then(|v| v.trim().parse::<u64>().ok()).map(Duration::from_secs);
-                let body = res.bytes().await.map_err(|e| e.to_string())?.to_vec();
+                let too_large = || {
+                    tr!(
+                        "応答が大きすぎるため打ち切りました（上限 {} MB）",
+                        "Response too large; aborted (limit {} MB)",
+                        MAX_BODY_BYTES / 1024 / 1024
+                    )
+                };
+                if res.content_length().is_some_and(|n| n > MAX_BODY_BYTES as u64) {
+                    return Err(too_large());
+                }
+                let mut body = Vec::new();
+                while let Some(chunk) = res.chunk().await.map_err(|e| e.to_string())? {
+                    if body.len() + chunk.len() > MAX_BODY_BYTES {
+                        return Err(too_large());
+                    }
+                    body.extend_from_slice(&chunk);
+                }
                 Ok::<_, String>(RawResponse { status, body, total_size, retry_after })
             }
             .await;
@@ -539,6 +557,18 @@ mod tests {
         let err = http.get(&url, None).await.err().unwrap();
         assert!(err.contains("Retry-After 3600"), "{err}");
         assert_eq!(hits.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn rejects_oversized_responses() {
+        let (url, _) =
+            serve("HTTP/1.1 200 OK\r\nContent-Length: 104857600\r\nConnection: close\r\n\r\npartial-body");
+        let (http, _) = http_with(CheckOptions {
+            network: NetworkSettings { max_retries: 0, ..fast_retry_options().network },
+            ..Default::default()
+        });
+        let err = http.get(&url, None).await.err().unwrap();
+        assert!(err.contains("大きすぎる"), "{err}");
     }
 
     #[tokio::test]

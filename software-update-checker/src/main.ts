@@ -2,8 +2,8 @@ import { mount } from 'svelte';
 import App from './App.svelte';
 import './app.css';
 
-// 開発時に通常のブラウザで開いた場合は、模擬バックエンドで画面だけ確認できるようにする
-if (import.meta.env.DEV && !('__TAURI_INTERNALS__' in window)) {
+// 開発時（または CSP 確認用の mock ビルド）に通常のブラウザで開いた場合は、模擬バックエンドで画面だけ確認できるようにする
+if ((import.meta.env.DEV || import.meta.env.MODE === 'mock') && !('__TAURI_INTERNALS__' in window)) {
   (await import('./lib/mock')).install();
 }
 

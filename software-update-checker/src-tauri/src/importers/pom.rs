@@ -101,6 +101,23 @@ impl Importer for PomImporter {
             }
         }
 
+        // maven-shade-plugin は既定で「依存削減版 pom」を公開し、jar に同梱した依存を pom から消す。
+        // その場合は pom に依存がほとんど残らないため、理由と代わりの入力を案内する。
+        if uses_shade_plugin(project) {
+            let runtime = components.iter().filter(|c| !matches!(c.scope.as_deref(), Some("test" | "provided" | "import" | "parent"))).count();
+            warnings.push(tr!(
+                "maven-shade-plugin を使っています。公開された pom は、jar に同梱した依存が削除された「依存削減版」の可能性があります（実行時の依存 {runtime} 件）。依存を正しく見るには、元のプロジェクトの pom.xml か、同じ場所の SBOM を読み込んでください。",
+                "This project uses maven-shade-plugin. A published pom may be a \"dependency-reduced\" pom without the dependencies bundled into the jar ({runtime} runtime dependencies listed). To see the real dependencies, load the project's own pom.xml or an SBOM next to it."
+            ));
+        }
+        let related_files = related_sboms(path);
+        if !related_files.is_empty() {
+            warnings.push(tr!(
+                "同じ場所に SBOM があります。推移的依存まで正確に見るにはそちらを読み込んでください。",
+                "An SBOM exists next to this pom. Load it to see all dependencies, including transitive ones."
+            ));
+        }
+
         if components.iter().any(|c| c.version.is_none()) {
             warnings.push(
                 tr!(
@@ -125,8 +142,39 @@ impl Importer for PomImporter {
             components,
             warnings,
             includes_transitive: false,
+            related_files,
         })
     }
+}
+
+/// build/plugins に maven-shade-plugin があり、依存削減版 pom を無効にしていないか。
+fn uses_shade_plugin(project: Node) -> bool {
+    let Some(plugins) = child(project, "build").and_then(|b| child(b, "plugins")) else { return false };
+    plugins.children().filter(|n| n.has_tag_name("plugin")).any(|p| {
+        child_text(p, "artifactId").as_deref() == Some("maven-shade-plugin")
+            && !p
+                .descendants()
+                .any(|n| n.has_tag_name("createDependencyReducedPom") && n.text().map(str::trim) == Some("false"))
+    })
+}
+
+/// pom と同じ場所にある SBOM。Maven リポジトリの `{artifact}-{version}.pom` なら
+/// `{artifact}-{version}-cyclonedx.json` など、プロジェクトの pom.xml なら target/ の生成物を探す。
+fn related_sboms(pom: &Path) -> Vec<String> {
+    let Some(dir) = pom.parent() else { return Vec::new() };
+    let stem = pom.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+    let candidates: Vec<std::path::PathBuf> = if pom.file_name().and_then(|n| n.to_str()) == Some("pom.xml") {
+        ["target/bom.json", "target/bom.xml", "target/classes/META-INF/sbom/application.cdx.json"]
+            .iter()
+            .map(|p| dir.join(p))
+            .collect()
+    } else {
+        ["-cyclonedx.json", "-cyclonedx.xml", ".spdx.json", "-spdx.json"]
+            .iter()
+            .map(|suffix| dir.join(format!("{stem}{suffix}")))
+            .collect()
+    };
+    candidates.into_iter().filter(|p| p.is_file()).map(|p| p.display().to_string()).collect()
 }
 
 fn child<'a, 'i>(node: Node<'a, 'i>, name: &str) -> Option<Node<'a, 'i>> {
@@ -253,6 +301,40 @@ mod tests {
 
     fn find<'a>(r: &'a ImportResult, name: &str) -> &'a Component {
         r.components.iter().find(|c| c.name == name).unwrap()
+    }
+
+    #[test]
+    fn warns_about_dependency_reduced_pom_and_finds_sibling_sbom() {
+        let dir = std::env::temp_dir().join(format!("suc-pom-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let pom = dir.join("app-1.0.pom");
+        std::fs::write(
+            &pom,
+            r#"<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <groupId>g</groupId><artifactId>app</artifactId><version>1.0</version>
+  <build><plugins><plugin><artifactId>maven-shade-plugin</artifactId></plugin></plugins></build>
+  <dependencies>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>6.1.3</version><scope>test</scope></dependency>
+  </dependencies>
+</project>"#,
+        )
+        .unwrap();
+        std::fs::write(dir.join("app-1.0-cyclonedx.json"), "{}").unwrap();
+
+        let content = std::fs::read_to_string(&pom).unwrap();
+        let r = crate::i18n::with_language(crate::i18n::Language::Japanese, || PomImporter.import(&pom, &content)).unwrap();
+        assert!(r.warnings.iter().any(|w| w.contains("依存削減版") && w.contains("0 件")), "{:?}", r.warnings);
+        assert_eq!(r.related_files.len(), 1);
+        assert!(r.related_files[0].ends_with("app-1.0-cyclonedx.json"));
+
+        // createDependencyReducedPom=false なら警告しない
+        let not_reduced = content.replace(
+            "<artifactId>maven-shade-plugin</artifactId>",
+            "<artifactId>maven-shade-plugin</artifactId><configuration><createDependencyReducedPom>false</createDependencyReducedPom></configuration>",
+        );
+        let r = PomImporter.import(&pom, &not_reduced).unwrap();
+        assert!(!r.warnings.iter().any(|w| w.contains("依存削減版")));
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

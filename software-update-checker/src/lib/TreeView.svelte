@@ -115,7 +115,7 @@
         class="tree-row"
         class:selected={id === selectedId}
         class:dim={filtered && !matches.has(id)}
-        style="padding-left: {depth * 18 + 6}px"
+        style:padding-left="{depth * 18 + 6}px"
         role="treeitem"
         aria-selected={id === selectedId}
         aria-expanded={children.length > 0 ? open : undefined}

@@ -176,11 +176,16 @@ fn to_eol_info(product: &Product, match_kind: EolMatch, version: Option<&str>) -
         eol_from: cycle.and_then(|c| c.eol_from.clone()),
         latest_in_cycle: cycle.and_then(|c| c.latest.as_ref().map(|l| l.name.clone())),
         match_kind,
+        // API の値をそのまま開かないよう、リンクは endoflife.date の URL に限る（開ける URL は権限設定でも制限）
         link: product
             .links
             .as_ref()
             .and_then(|l| l.html.clone())
-            .unwrap_or_else(|| format!("https://endoflife.date/{}", product.name)),
+            .filter(|u| u.starts_with("https://endoflife.date/"))
+            .unwrap_or_else(|| {
+                let name: String = product.name.chars().filter(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '.' | '_')).collect();
+                format!("https://endoflife.date/{name}")
+            }),
         cycles: cycles_from(product, cycle),
     }
 }
@@ -238,7 +243,7 @@ pub async fn check(
         let Some(base) = canonical_purl(c, false) else { continue };
         let Some((product, kind)) = index.find(&base) else { continue };
         if let Some(r) = results.get_mut(&c.id) {
-            let version = has_concrete_version(c).then(|| c.version.as_deref()).flatten();
+            let version = has_concrete_version(c).then_some(c.version.as_deref()).flatten();
             r.eol = Some(to_eol_info(product, kind, version));
         }
     }

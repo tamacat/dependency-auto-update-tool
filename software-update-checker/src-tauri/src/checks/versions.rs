@@ -186,7 +186,7 @@ pub async fn check(
     let total = packages.len();
     let semaphore = Arc::new(Semaphore::new(http.network().max_concurrency));
     let mut tasks = JoinSet::new();
-    for ((system, name), _) in packages.iter() {
+    for (system, name) in packages.keys() {
         let (http, opts, semaphore) = (http.clone(), opts.clone(), semaphore.clone());
         let (system, name) = (*system, name.clone());
         tasks.spawn(async move {
@@ -208,7 +208,7 @@ pub async fn check(
             let Some(result) = results.get_mut(&c.id) else { continue };
             match &res {
                 Ok(Some(pkg)) => {
-                    let current = has_concrete_version(c).then(|| c.version.as_deref()).flatten();
+                    let current = has_concrete_version(c).then_some(c.version.as_deref()).flatten();
                     let info = summarize(pkg, current, opts, today);
                     if c.licenses.is_empty() && !info.current_not_found {
                         if let Some(v) = current {

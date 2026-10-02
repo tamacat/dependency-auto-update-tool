@@ -5,6 +5,10 @@
 import { prefs, type Locale } from './prefs.svelte';
 
 const ja = {
+  "source.loadRelated": "{file} を読み込む",
+  "source.related": "同じ場所の SBOM:",
+  "external.failed": "ページを開けません",
+  "external.blocked": "許可されていないページのため開きません: {url}",
   "busy.checking": "チェック中",
   "busy.loading": "ファイルを読み込み中",
   "busy.maven": "Maven で SBOM を生成中（数分かかることがあります）",
@@ -257,6 +261,10 @@ const ja = {
 export type MessageKey = keyof typeof ja;
 
 const en: Record<MessageKey, string> = {
+  "source.loadRelated": "Load {file}",
+  "source.related": "SBOM next to this file:",
+  "external.failed": "Cannot open the page",
+  "external.blocked": "Not opening a page that is not allowed: {url}",
   "busy.checking": "Checking",
   "busy.loading": "Loading file",
   "busy.maven": "Generating SBOM with Maven (this may take a few minutes)",

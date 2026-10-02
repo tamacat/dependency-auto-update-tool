@@ -10,6 +10,29 @@ use crate::sources::{self, DataSourceView};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
+use tauri_plugin_dialog::DialogExt;
+
+/// 保存先を利用者に選ばせる（バックエンド側でダイアログを出す）。
+/// 画面からパスを受け取って書き込むと、画面が乗っ取られた場合に任意の場所へ書き込まれるため、
+/// 書き込み先は必ずこのダイアログで利用者が選んだものに限る。キャンセルなら `None`。
+fn ask_save_path(app: &AppHandle, title: String, filter: &str, extension: &str, default_name: &str) -> Result<Option<PathBuf>, String> {
+    // 既定のファイル名にパスが混ざっていても、ファイル名部分だけを使う
+    let name = std::path::Path::new(default_name)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| format!("export.{extension}"));
+    match app
+        .dialog()
+        .file()
+        .set_title(title)
+        .add_filter(filter, &[extension])
+        .set_file_name(name)
+        .blocking_save_file()
+    {
+        Some(p) => p.into_path().map(Some).map_err(|e| e.to_string()),
+        None => Ok(None),
+    }
+}
 
 #[tauri::command]
 pub async fn import_file(http: State<'_, Http>, path: String) -> Result<ImportResult, String> {
@@ -156,17 +179,30 @@ pub fn knowledge_import(http: State<'_, Http>, store: State<'_, KnowledgeStore>,
     Ok(summary)
 }
 
-/// 手元のナレッジを書き出す（共有用）。`include_detected` が false なら手動の記録だけ。
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportResult {
+    pub path: String,
+    pub count: usize,
+}
+
+/// 手元のナレッジを書き出す（共有用）。保存先はこの中で利用者に選ばせる。
+/// `include_detected` が false なら手動の記録だけ。キャンセルなら `None`。
 #[tauri::command]
-pub fn knowledge_export(
+pub async fn knowledge_export(
+    app: AppHandle,
     http: State<'_, Http>,
     store: State<'_, KnowledgeStore>,
-    path: String,
     include_detected: bool,
-) -> Result<usize, String> {
-    let count = store.export(std::path::Path::new(&path), include_detected)?;
-    http.log().info(tr!("Java 要件ナレッジを書き出し: {path}（{count} 件）", "Java requirements exported to {path} ({count} records)"));
-    Ok(count)
+) -> Result<Option<ExportResult>, String> {
+    let title = tr!("Java 要件ナレッジの書き出し先", "Export Java requirements to");
+    let Some(path) = ask_save_path(&app, title, "JSON", "json", "java-requirements.json")? else {
+        return Ok(None);
+    };
+    let count = store.export(&path, include_detected)?;
+    let shown = path.display().to_string();
+    http.log().info(tr!("Java 要件ナレッジを書き出し: {shown}（{count} 件）", "Java requirements exported to {shown} ({count} records)"));
+    Ok(Some(ExportResult { path: shown, count }))
 }
 
 /// 現在の表示言語でのデータソース一覧。
@@ -192,10 +228,28 @@ pub fn log_directory(http: State<'_, Http>) -> Option<String> {
     http.log().dir().map(|d| d.display().to_string())
 }
 
-/// エクスポート用。保存先はフロントの保存ダイアログで利用者が選んだパスに限る。
+/// 一覧の CSV / JSON 出力。保存先はこの中で利用者に選ばせる。キャンセルなら `None`。
 #[tauri::command]
-pub async fn save_text_file(path: String, contents: String) -> Result<(), String> {
-    std::fs::write(&path, contents).map_err(|e| tr!("{path} に保存できません: {e}", "Cannot save {path}: {e}"))
+pub async fn export_report(
+    app: AppHandle,
+    http: State<'_, Http>,
+    kind: String,
+    default_name: String,
+    contents: String,
+) -> Result<Option<String>, String> {
+    let (filter, extension) = match kind.as_str() {
+        "csv" => ("CSV", "csv"),
+        "json" => ("JSON", "json"),
+        _ => return Err(tr!("出力形式「{kind}」には対応していません", "Unsupported export format \"{kind}\"")),
+    };
+    let title = tr!("書き出し先", "Export to");
+    let Some(path) = ask_save_path(&app, title, filter, extension, &default_name)? else {
+        return Ok(None);
+    };
+    let shown = path.display().to_string();
+    std::fs::write(&path, contents).map_err(|e| tr!("{shown} に保存できません: {e}", "Cannot save {shown}: {e}"))?;
+    http.log().info(tr!("書き出し: {shown}", "Exported: {shown}"));
+    Ok(Some(shown))
 }
 
 #[tauri::command]

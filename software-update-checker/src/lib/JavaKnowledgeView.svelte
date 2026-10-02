@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { open, save, message, ask } from '@tauri-apps/plugin-dialog';
+  import { open, message, ask } from '@tauri-apps/plugin-dialog';
   import { openPath } from '@tauri-apps/plugin-opener';
   import * as api from './api';
   import { t } from './i18n';
@@ -139,11 +139,9 @@
   }
 
   async function exportFile() {
-    const path = await save({ defaultPath: 'java-requirements.json', filters: [{ name: 'JSON', extensions: ['json'] }] });
-    if (!path) return;
     try {
-      const n = await api.knowledgeExport(path, includeDetectedOnExport);
-      await message(t('kb.exported', { n, path }), { title: t('kb.exportedTitle') });
+      const r = await api.knowledgeExport(includeDetectedOnExport);
+      if (r) await message(t('kb.exported', { n: r.count, path: r.path }), { title: t('kb.exportedTitle') });
     } catch (e) {
       await message(String(e), { title: t('kb.exportFailed'), kind: 'error' });
     }

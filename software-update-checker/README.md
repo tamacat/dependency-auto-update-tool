@@ -122,7 +122,18 @@ software-update-checker/
    └─ src/commands.rs      フロントから呼べるコマンド
 ```
 
-フロントエンドには外部への通信を許可していません（CSP と capabilities で制限）。外部 API はすべて Rust 側から呼びます。
+### セキュリティ上の設計
+
+- **外部 API はすべて Rust 側から呼ぶ**: 画面（WebView）には外部への通信を許可していません。
+- **CSP**: `script-src 'self'; style-src 'self'` などで、インラインのスクリプトやスタイルを禁止しています。画面のスタイルは CSS ファイルと、JavaScript から個別に設定するもの（Svelte の `style:` 指令）だけを使います。
+- **ファイルの書き込み先は利用者が選んだ場所だけ**: CSV / JSON 出力とナレッジの書き出しでは、保存先のダイアログをバックエンド側で出し、そこで選ばれたパスにだけ書き込みます。画面からパスを指定して書き込むコマンドはありません。
+- **開ける外部ページを限定**: ブラウザで開けるのは `https://osv.dev/*` と `https://endoflife.date/*` だけです（`capabilities/default.json`）。
+- **信頼できない入力への備え**:
+  - XML は DTD を受け付けません（XXE・Billion Laughs 対策）。
+  - jar のクラスファイルは先頭 64 バイトまでしか展開しません（展開爆弾対策）。
+  - HTTP 応答は 50MB で打ち切ります。
+
+CSP 違反がないかは、模擬バックエンド入りのビルド（`npm run build:mock`、出力は `dist-mock/`）を同じ CSP 付きで配信して確認できます。本番ビルド（`npm run build`）には模擬バックエンドは含まれません。
 
 ### 対応を広げるとき
 
