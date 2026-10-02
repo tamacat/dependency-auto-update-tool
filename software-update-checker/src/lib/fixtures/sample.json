@@ -1,0 +1,3162 @@
+{
+  "import": {
+    "components": [
+      {
+        "dependencies": [
+          "pkg:maven/ognl/ognl@3.3.4?type=jar",
+          "pkg:maven/org.attoparser/attoparser@2.0.7.RELEASE?type=jar",
+          "pkg:maven/org.unbescape/unbescape@1.1.6.RELEASE?type=jar",
+          "pkg:maven/org.slf4j/slf4j-api@2.0.20?type=jar"
+        ],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "org.thymeleaf",
+        "id": "pkg:maven/org.thymeleaf/thymeleaf@3.1.5.RELEASE?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "thymeleaf",
+        "notes": [],
+        "purl": "pkg:maven/org.thymeleaf/thymeleaf@3.1.5.RELEASE?type=jar",
+        "scope": "required",
+        "version": "3.1.5.RELEASE"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.javassist/javassist@3.29.0-GA?type=jar"
+        ],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "ognl",
+        "id": "pkg:maven/ognl/ognl@3.3.4?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "ognl",
+        "notes": [],
+        "purl": "pkg:maven/ognl/ognl@3.3.4?type=jar",
+        "scope": "required",
+        "version": "3.3.4"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.javassist",
+        "id": "pkg:maven/org.javassist/javassist@3.29.0-GA?type=jar",
+        "licenses": [
+          "MPL-1.1",
+          "LGPL-2.1-only",
+          "Apache-2.0"
+        ],
+        "name": "javassist",
+        "notes": [],
+        "purl": "pkg:maven/org.javassist/javassist@3.29.0-GA?type=jar",
+        "scope": "required",
+        "version": "3.29.0-GA"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.attoparser",
+        "id": "pkg:maven/org.attoparser/attoparser@2.0.7.RELEASE?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "attoparser",
+        "notes": [],
+        "purl": "pkg:maven/org.attoparser/attoparser@2.0.7.RELEASE?type=jar",
+        "scope": "required",
+        "version": "2.0.7.RELEASE"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.unbescape",
+        "id": "pkg:maven/org.unbescape/unbescape@1.1.6.RELEASE?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "unbescape",
+        "notes": [],
+        "purl": "pkg:maven/org.unbescape/unbescape@1.1.6.RELEASE?type=jar",
+        "scope": "required",
+        "version": "1.1.6.RELEASE"
+      },
+      {
+        "dependencies": [],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "commons-codec",
+        "id": "pkg:maven/commons-codec/commons-codec@1.22.1?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "commons-codec",
+        "notes": [],
+        "purl": "pkg:maven/commons-codec/commons-codec@1.22.1?type=jar",
+        "scope": "required",
+        "version": "1.22.1"
+      },
+      {
+        "dependencies": [],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "commons-logging",
+        "id": "pkg:maven/commons-logging/commons-logging@1.4.0?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "commons-logging",
+        "notes": [],
+        "purl": "pkg:maven/commons-logging/commons-logging@1.4.0?type=jar",
+        "scope": "required",
+        "version": "1.4.0"
+      },
+      {
+        "dependencies": [],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "org.apache.commons",
+        "id": "pkg:maven/org.apache.commons/commons-lang3@3.20.0?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "commons-lang3",
+        "notes": [],
+        "purl": "pkg:maven/org.apache.commons/commons-lang3@3.20.0?type=jar",
+        "scope": "required",
+        "version": "3.20.0"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/jakarta.activation/jakarta.activation-api@1.2.2?type=jar"
+        ],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "jakarta.xml.bind",
+        "id": "pkg:maven/jakarta.xml.bind/jakarta.xml.bind-api@2.3.3?type=jar",
+        "licenses": [
+          "BSD-3-Clause"
+        ],
+        "name": "jakarta.xml.bind-api",
+        "notes": [],
+        "purl": "pkg:maven/jakarta.xml.bind/jakarta.xml.bind-api@2.3.3?type=jar",
+        "scope": "required",
+        "version": "2.3.3"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "jakarta.activation",
+        "id": "pkg:maven/jakarta.activation/jakarta.activation-api@1.2.2?type=jar",
+        "licenses": [
+          "BSD-3-Clause"
+        ],
+        "name": "jakarta.activation-api",
+        "notes": [],
+        "purl": "pkg:maven/jakarta.activation/jakarta.activation-api@1.2.2?type=jar",
+        "scope": "required",
+        "version": "1.2.2"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/jakarta.xml.bind/jakarta.xml.bind-api@2.3.3?type=jar",
+          "pkg:maven/com.sun.activation/jakarta.activation@1.2.2?type=jar"
+        ],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "com.sun.xml.bind",
+        "id": "pkg:maven/com.sun.xml.bind/jaxb-impl@2.3.9?type=jar",
+        "licenses": [
+          "BSD-3-Clause"
+        ],
+        "name": "jaxb-impl",
+        "notes": [],
+        "purl": "pkg:maven/com.sun.xml.bind/jaxb-impl@2.3.9?type=jar",
+        "scope": "required",
+        "version": "2.3.9"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "com.sun.activation",
+        "id": "pkg:maven/com.sun.activation/jakarta.activation@1.2.2?type=jar",
+        "licenses": [
+          "BSD-3-Clause"
+        ],
+        "name": "jakarta.activation",
+        "notes": [],
+        "purl": "pkg:maven/com.sun.activation/jakarta.activation@1.2.2?type=jar",
+        "scope": "required",
+        "version": "1.2.2"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.apache.tomcat/tomcat-annotations-api@9.0.122?type=jar"
+        ],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "org.apache.tomcat.embed",
+        "id": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@9.0.122?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "tomcat-embed-core",
+        "notes": [],
+        "purl": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@9.0.122?type=jar",
+        "scope": "optional",
+        "version": "9.0.122"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.apache.tomcat",
+        "id": "pkg:maven/org.apache.tomcat/tomcat-annotations-api@9.0.122?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "tomcat-annotations-api",
+        "notes": [],
+        "purl": "pkg:maven/org.apache.tomcat/tomcat-annotations-api@9.0.122?type=jar",
+        "scope": "optional",
+        "version": "9.0.122"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@9.0.122?type=jar",
+          "pkg:maven/org.apache.tomcat.embed/tomcat-embed-el@9.0.122?type=jar",
+          "pkg:maven/org.eclipse.jdt/ecj@3.26.0?type=jar"
+        ],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "org.apache.tomcat.embed",
+        "id": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-jasper@9.0.122?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "tomcat-embed-jasper",
+        "notes": [],
+        "purl": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-jasper@9.0.122?type=jar",
+        "scope": "optional",
+        "version": "9.0.122"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.apache.tomcat.embed",
+        "id": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-el@9.0.122?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "tomcat-embed-el",
+        "notes": [],
+        "purl": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-el@9.0.122?type=jar",
+        "scope": "optional",
+        "version": "9.0.122"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.eclipse.jdt",
+        "id": "pkg:maven/org.eclipse.jdt/ecj@3.26.0?type=jar",
+        "licenses": [
+          "EPL-2.0"
+        ],
+        "name": "ecj",
+        "notes": [],
+        "purl": "pkg:maven/org.eclipse.jdt/ecj@3.26.0?type=jar",
+        "scope": "optional",
+        "version": "3.26.0"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.apache.commons/commons-lang3@3.20.0?type=jar",
+          "pkg:maven/org.slf4j/slf4j-api@2.0.20?type=jar"
+        ],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "org.apache.velocity",
+        "id": "pkg:maven/org.apache.velocity/velocity-engine-core@2.4.1?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "velocity-engine-core",
+        "notes": [],
+        "purl": "pkg:maven/org.apache.velocity/velocity-engine-core@2.4.1?type=jar",
+        "scope": "optional",
+        "version": "2.4.1"
+      },
+      {
+        "dependencies": [],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "org.slf4j",
+        "id": "pkg:maven/org.slf4j/slf4j-api@2.0.20?type=jar",
+        "licenses": [
+          "MIT"
+        ],
+        "name": "slf4j-api",
+        "notes": [],
+        "purl": "pkg:maven/org.slf4j/slf4j-api@2.0.20?type=jar",
+        "scope": "required",
+        "version": "2.0.20"
+      },
+      {
+        "dependencies": [],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "ch.qos.logback",
+        "id": "pkg:maven/ch.qos.logback/logback-core@1.3.16?type=jar",
+        "licenses": [
+          "EPL-1.0",
+          "GNU Lesser General Public License"
+        ],
+        "name": "logback-core",
+        "notes": [],
+        "purl": "pkg:maven/ch.qos.logback/logback-core@1.3.16?type=jar",
+        "scope": "optional",
+        "version": "1.3.16"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/ch.qos.logback/logback-core@1.3.16?type=jar",
+          "pkg:maven/org.slf4j/slf4j-api@2.0.20?type=jar"
+        ],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "ch.qos.logback",
+        "id": "pkg:maven/ch.qos.logback/logback-classic@1.3.16?type=jar",
+        "licenses": [
+          "EPL-1.0",
+          "GNU Lesser General Public License"
+        ],
+        "name": "logback-classic",
+        "notes": [],
+        "purl": "pkg:maven/ch.qos.logback/logback-classic@1.3.16?type=jar",
+        "scope": "optional",
+        "version": "1.3.16"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.hamcrest/hamcrest-core@1.3?type=jar"
+        ],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "junit",
+        "id": "pkg:maven/junit/junit@4.13.2?type=jar",
+        "licenses": [
+          "EPL-1.0"
+        ],
+        "name": "junit",
+        "notes": [],
+        "purl": "pkg:maven/junit/junit@4.13.2?type=jar",
+        "scope": "required",
+        "version": "4.13.2"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.hamcrest",
+        "id": "pkg:maven/org.hamcrest/hamcrest-core@1.3?type=jar",
+        "licenses": [
+          "BSD-3-Clause"
+        ],
+        "name": "hamcrest-core",
+        "notes": [],
+        "purl": "pkg:maven/org.hamcrest/hamcrest-core@1.3?type=jar",
+        "scope": "required",
+        "version": "1.3"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.powermock/powermock-module-junit4-common@2.0.9?type=jar",
+          "pkg:maven/junit/junit@4.13.2?type=jar",
+          "pkg:maven/org.hamcrest/hamcrest-core@1.3?type=jar"
+        ],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "org.powermock",
+        "id": "pkg:maven/org.powermock/powermock-module-junit4@2.0.9?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "powermock-module-junit4",
+        "notes": [],
+        "purl": "pkg:maven/org.powermock/powermock-module-junit4@2.0.9?type=jar",
+        "scope": "required",
+        "version": "2.0.9"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.powermock/powermock-reflect@2.0.9?type=jar",
+          "pkg:maven/org.powermock/powermock-core@2.0.9?type=jar",
+          "pkg:maven/junit/junit@4.13.2?type=jar",
+          "pkg:maven/org.hamcrest/hamcrest-core@1.3?type=jar"
+        ],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.powermock",
+        "id": "pkg:maven/org.powermock/powermock-module-junit4-common@2.0.9?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "powermock-module-junit4-common",
+        "notes": [],
+        "purl": "pkg:maven/org.powermock/powermock-module-junit4-common@2.0.9?type=jar",
+        "scope": "required",
+        "version": "2.0.9"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.objenesis/objenesis@2.6?type=jar",
+          "pkg:maven/net.bytebuddy/byte-buddy@1.10.14?type=jar",
+          "pkg:maven/net.bytebuddy/byte-buddy-agent@1.10.14?type=jar"
+        ],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.powermock",
+        "id": "pkg:maven/org.powermock/powermock-reflect@2.0.9?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "powermock-reflect",
+        "notes": [],
+        "purl": "pkg:maven/org.powermock/powermock-reflect@2.0.9?type=jar",
+        "scope": "required",
+        "version": "2.0.9"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "net.bytebuddy",
+        "id": "pkg:maven/net.bytebuddy/byte-buddy@1.10.14?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "byte-buddy",
+        "notes": [],
+        "purl": "pkg:maven/net.bytebuddy/byte-buddy@1.10.14?type=jar",
+        "scope": "required",
+        "version": "1.10.14"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "net.bytebuddy",
+        "id": "pkg:maven/net.bytebuddy/byte-buddy-agent@1.10.14?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "byte-buddy-agent",
+        "notes": [],
+        "purl": "pkg:maven/net.bytebuddy/byte-buddy-agent@1.10.14?type=jar",
+        "scope": "required",
+        "version": "1.10.14"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.powermock/powermock-reflect@2.0.9?type=jar",
+          "pkg:maven/org.javassist/javassist@3.29.0-GA?type=jar",
+          "pkg:maven/net.bytebuddy/byte-buddy@1.10.14?type=jar",
+          "pkg:maven/net.bytebuddy/byte-buddy-agent@1.10.14?type=jar"
+        ],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.powermock",
+        "id": "pkg:maven/org.powermock/powermock-core@2.0.9?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "powermock-core",
+        "notes": [],
+        "purl": "pkg:maven/org.powermock/powermock-core@2.0.9?type=jar",
+        "scope": "required",
+        "version": "2.0.9"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.powermock/powermock-api-support@2.0.9?type=jar",
+          "pkg:maven/org.mockito/mockito-core@3.3.3?type=jar"
+        ],
+        "direct": true,
+        "ecosystem": "maven",
+        "group": "org.powermock",
+        "id": "pkg:maven/org.powermock/powermock-api-mockito2@2.0.9?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "powermock-api-mockito2",
+        "notes": [],
+        "purl": "pkg:maven/org.powermock/powermock-api-mockito2@2.0.9?type=jar",
+        "scope": "required",
+        "version": "2.0.9"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.powermock/powermock-reflect@2.0.9?type=jar",
+          "pkg:maven/org.powermock/powermock-core@2.0.9?type=jar"
+        ],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.powermock",
+        "id": "pkg:maven/org.powermock/powermock-api-support@2.0.9?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "powermock-api-support",
+        "notes": [],
+        "purl": "pkg:maven/org.powermock/powermock-api-support@2.0.9?type=jar",
+        "scope": "required",
+        "version": "2.0.9"
+      },
+      {
+        "dependencies": [
+          "pkg:maven/org.objenesis/objenesis@2.6?type=jar"
+        ],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.mockito",
+        "id": "pkg:maven/org.mockito/mockito-core@3.3.3?type=jar",
+        "licenses": [
+          "MIT"
+        ],
+        "name": "mockito-core",
+        "notes": [],
+        "purl": "pkg:maven/org.mockito/mockito-core@3.3.3?type=jar",
+        "scope": "required",
+        "version": "3.3.3"
+      },
+      {
+        "dependencies": [],
+        "direct": false,
+        "ecosystem": "maven",
+        "group": "org.objenesis",
+        "id": "pkg:maven/org.objenesis/objenesis@2.6?type=jar",
+        "licenses": [
+          "Apache-2.0"
+        ],
+        "name": "objenesis",
+        "notes": [],
+        "purl": "pkg:maven/org.objenesis/objenesis@2.6?type=jar",
+        "scope": "required",
+        "version": "2.6"
+      }
+    ],
+    "format": "cyclonedx-json",
+    "includesTransitive": true,
+    "projectName": "org.tamacat:tamacat-httpd:1.6.0-tc9.0.122",
+    "sourcePath": "tamacat-httpd/target/bom.json",
+    "warnings": []
+  },
+  "java": {
+    "pkg:maven/ch.qos.logback/logback-classic@1.3.16?type=jar": [
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "1.6.5"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "1.5.38"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "1.4.14"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.3.16"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.3.16"
+      }
+    ],
+    "pkg:maven/ch.qos.logback/logback-core@1.3.16?type=jar": [
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "1.6.5"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "1.5.38"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "1.4.14"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.3.16"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.3.16"
+      }
+    ],
+    "pkg:maven/com.sun.activation/jakarta.activation@1.2.2?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.0.1"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.2.2"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.2.2"
+      }
+    ],
+    "pkg:maven/com.sun.xml.bind/jaxb-impl@2.3.9?type=jar": [
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "4.0.9"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.0.2"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.3.9"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.3.9"
+      }
+    ],
+    "pkg:maven/commons-codec/commons-codec@1.22.1?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.22.1"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.22.1"
+      }
+    ],
+    "pkg:maven/commons-logging/commons-logging@1.4.0?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.4.0"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.4.0"
+      }
+    ],
+    "pkg:maven/jakarta.activation/jakarta.activation-api@1.2.2?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.1.4"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.0.1"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.2.2"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.2.2"
+      }
+    ],
+    "pkg:maven/jakarta.xml.bind/jakarta.xml.bind-api@2.3.3?type=jar": [
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "4.0.5"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.0.1"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.3.3"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.3.3"
+      }
+    ],
+    "pkg:maven/junit/junit@4.13.2?type=jar": [
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "4.13.2"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "4.13.2"
+      }
+    ],
+    "pkg:maven/net.bytebuddy/byte-buddy-agent@1.10.14?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.18.14"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.17.8"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.16.1"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.15.11"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.14.19"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.13.0"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.12.23"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.11.22"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.10.22"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.10.14"
+      }
+    ],
+    "pkg:maven/net.bytebuddy/byte-buddy@1.10.14?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "1.18.14"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.17.8"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.16.1"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.15.11"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.14.19"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.13.0"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.12.23"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.11.22"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.10.22"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.10.14"
+      }
+    ],
+    "pkg:maven/ognl/ognl@3.3.4?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.4.14"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.3.5"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.3.4"
+      }
+    ],
+    "pkg:maven/org.apache.commons/commons-lang3@3.20.0?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.21.0"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.20.0"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.20.0"
+      }
+    ],
+    "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@9.0.122?type=jar": [
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "11.0.26"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "10.1.60"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "10.0.27"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "9.0.122"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "9.0.122"
+      }
+    ],
+    "pkg:maven/org.apache.tomcat.embed/tomcat-embed-el@9.0.122?type=jar": [
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "11.0.26"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "10.1.60"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "10.0.27"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "9.0.122"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "9.0.122"
+      }
+    ],
+    "pkg:maven/org.apache.tomcat.embed/tomcat-embed-jasper@9.0.122?type=jar": [
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "11.0.26"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "10.1.60"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "10.0.27"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "9.0.122"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "9.0.122"
+      }
+    ],
+    "pkg:maven/org.apache.tomcat/tomcat-annotations-api@9.0.122?type=jar": [
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "11.0.26"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "10.1.60"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "10.0.27"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "9.0.122"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "9.0.122"
+      }
+    ],
+    "pkg:maven/org.apache.velocity/velocity-engine-core@2.4.1?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.4.1"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.4.1"
+      }
+    ],
+    "pkg:maven/org.attoparser/attoparser@2.0.7.RELEASE?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.0.9.RELEASE"
+      },
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.7.RELEASE"
+      }
+    ],
+    "pkg:maven/org.eclipse.jdt/ecj@3.26.0?type=jar": [
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.46.100"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.45.0"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.44.0"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.43.0"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.42.0"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.41.0"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.40.0"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.39.0"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.38.0"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.37.0"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.36.0"
+      },
+      {
+        "classMajor": 61,
+        "java": "17",
+        "note": null,
+        "version": "3.35.0"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.26.0"
+      }
+    ],
+    "pkg:maven/org.hamcrest/hamcrest-core@1.3?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.0"
+      },
+      {
+        "classMajor": 51,
+        "java": "7",
+        "note": null,
+        "version": "2.2"
+      },
+      {
+        "classMajor": 51,
+        "java": "7",
+        "note": null,
+        "version": "2.1"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.3"
+      },
+      {
+        "classMajor": 49,
+        "java": "5",
+        "note": null,
+        "version": "1.3"
+      }
+    ],
+    "pkg:maven/org.javassist/javassist@3.29.0-GA?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.33.0-GA"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.32.0-GA"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.31.0-GA"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.30.2-GA"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.29.2-GA"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.29.0-GA"
+      }
+    ],
+    "pkg:maven/org.mockito/mockito-core@3.3.3?type=jar": [
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.24.0"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.23.0"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.22.0"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.21.0"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.20.0"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.19.0"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.18.0"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.17.0"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.16.1"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.15.2"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.14.2"
+      },
+      {
+        "classMajor": 55,
+        "java": "11",
+        "note": null,
+        "version": "5.13.0"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.3.3"
+      }
+    ],
+    "pkg:maven/org.objenesis/objenesis@2.6?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.6"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.5"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.4"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.3"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.2"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.1"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.0.1"
+      },
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.6"
+      },
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.6"
+      }
+    ],
+    "pkg:maven/org.powermock/powermock-api-mockito2@2.0.9?type=jar": [
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      },
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      }
+    ],
+    "pkg:maven/org.powermock/powermock-api-support@2.0.9?type=jar": [
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      },
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      }
+    ],
+    "pkg:maven/org.powermock/powermock-core@2.0.9?type=jar": [
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      },
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      }
+    ],
+    "pkg:maven/org.powermock/powermock-module-junit4-common@2.0.9?type=jar": [
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      },
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      }
+    ],
+    "pkg:maven/org.powermock/powermock-module-junit4@2.0.9?type=jar": [
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      },
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      }
+    ],
+    "pkg:maven/org.powermock/powermock-reflect@2.0.9?type=jar": [
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      },
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "2.0.9"
+      }
+    ],
+    "pkg:maven/org.slf4j/slf4j-api@2.0.20?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.0.20"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "2.0.20"
+      }
+    ],
+    "pkg:maven/org.thymeleaf/thymeleaf@3.1.5.RELEASE?type=jar": [
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.1.5.RELEASE"
+      },
+      {
+        "classMajor": 52,
+        "java": "8",
+        "note": null,
+        "version": "3.1.5.RELEASE"
+      }
+    ],
+    "pkg:maven/org.unbescape/unbescape@1.1.6.RELEASE?type=jar": [
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "1.1.6.RELEASE"
+      },
+      {
+        "classMajor": 50,
+        "java": "6",
+        "note": null,
+        "version": "1.1.6.RELEASE"
+      }
+    ]
+  },
+  "results": [
+    {
+      "componentId": "pkg:maven/org.thymeleaf/thymeleaf@3.1.5.RELEASE?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2026-04-21T20:55:38Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-04-21T20:55:38Z",
+        "latest": "3.1.5.RELEASE",
+        "latestInMajor": "3.1.5.RELEASE",
+        "latestInMinor": "3.1.5.RELEASE",
+        "latestPublishedAt": "2026-04-21T20:55:38Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "3.1.5.RELEASE",
+            "publishedAt": "2026-04-21T20:55:38Z",
+            "series": "3.1"
+          }
+        ],
+        "stale": false,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/ognl/ognl@3.3.4?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2022-09-05T05:33:12Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-10-01T18:30:51Z",
+        "latest": "3.4.14",
+        "latestInMajor": "3.4.14",
+        "latestInMinor": "3.3.5",
+        "latestPublishedAt": "2026-10-01T18:30:51Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "3.4.14",
+            "publishedAt": "2026-10-01T18:30:51Z",
+            "series": "3.4"
+          },
+          {
+            "isCurrent": true,
+            "latest": "3.3.5",
+            "publishedAt": "2024-04-18T06:00:53Z",
+            "series": "3.3"
+          }
+        ],
+        "stale": false,
+        "updateKind": "minor"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.javassist/javassist@3.29.0-GA?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2022-05-13T14:10:16Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-08-23T14:43:08Z",
+        "latest": "3.33.0-GA",
+        "latestInMajor": "3.33.0-GA",
+        "latestInMinor": "3.29.2-GA",
+        "latestPublishedAt": "2026-08-23T14:43:08Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "3.33.0-GA",
+            "publishedAt": "2026-08-23T14:43:08Z",
+            "series": "3.33"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.32.0-GA",
+            "publishedAt": "2026-06-21T09:03:32Z",
+            "series": "3.32"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.31.0-GA",
+            "publishedAt": "2026-04-19T16:43:02Z",
+            "series": "3.31"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.30.2-GA",
+            "publishedAt": "2023-12-24T16:32:19Z",
+            "series": "3.30"
+          },
+          {
+            "isCurrent": true,
+            "latest": "3.29.2-GA",
+            "publishedAt": "2022-09-13T21:36:12Z",
+            "series": "3.29"
+          }
+        ],
+        "stale": false,
+        "updateKind": "minor"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.attoparser/attoparser@2.0.7.RELEASE?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2023-07-30T13:48:52Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-06-22T21:42:44Z",
+        "latest": "2.0.9.RELEASE",
+        "latestInMajor": "2.0.9.RELEASE",
+        "latestInMinor": "2.0.9.RELEASE",
+        "latestPublishedAt": "2026-06-22T21:42:44Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "2.0.9.RELEASE",
+            "publishedAt": "2026-06-22T21:42:44Z",
+            "series": "2.0"
+          }
+        ],
+        "stale": false,
+        "updateKind": "patch"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.unbescape/unbescape@1.1.6.RELEASE?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2018-03-30T17:05:53Z",
+        "deprecated": null,
+        "lastReleaseAt": "2018-03-30T17:05:53Z",
+        "latest": "1.1.6.RELEASE",
+        "latestInMajor": "1.1.6.RELEASE",
+        "latestInMinor": "1.1.6.RELEASE",
+        "latestPublishedAt": "2018-03-30T17:05:53Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "1.1.6.RELEASE",
+            "publishedAt": "2018-03-30T17:05:53Z",
+            "series": "1.1"
+          }
+        ],
+        "stale": true,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/commons-codec/commons-codec@1.22.1?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2026-07-30T23:55:34Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-07-30T23:55:34Z",
+        "latest": "1.22.1",
+        "latestInMajor": "1.22.1",
+        "latestInMinor": "1.22.1",
+        "latestPublishedAt": "2026-07-30T23:55:34Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "1.22.1",
+            "publishedAt": "2026-07-30T23:55:34Z",
+            "series": "1.22"
+          }
+        ],
+        "stale": false,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/commons-logging/commons-logging@1.4.0?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2026-06-11T20:49:35Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-06-11T20:49:35Z",
+        "latest": "1.4.0",
+        "latestInMajor": "1.4.0",
+        "latestInMinor": "1.4.0",
+        "latestPublishedAt": "2026-06-11T20:49:35Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "1.4.0",
+            "publishedAt": "2026-06-11T20:49:35Z",
+            "series": "1.4"
+          }
+        ],
+        "stale": false,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.apache.commons/commons-lang3@3.20.0?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2025-11-12T20:08:11Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-25T20:01:05Z",
+        "latest": "3.21.0",
+        "latestInMajor": "3.21.0",
+        "latestInMinor": "3.20.0",
+        "latestPublishedAt": "2026-09-25T20:01:05Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "3.21.0",
+            "publishedAt": "2026-09-25T20:01:05Z",
+            "series": "3.21"
+          },
+          {
+            "isCurrent": true,
+            "latest": "3.20.0",
+            "publishedAt": "2025-11-12T20:08:11Z",
+            "series": "3.20"
+          }
+        ],
+        "stale": false,
+        "updateKind": "minor"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/jakarta.xml.bind/jakarta.xml.bind-api@2.3.3?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-01-27T09:35:28Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-05-02T19:08:06Z",
+        "latest": "4.0.5",
+        "latestInMajor": "2.3.3",
+        "latestInMinor": "2.3.3",
+        "latestPublishedAt": "2026-02-06T09:38:20Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "4.0.5",
+            "publishedAt": "2026-02-06T09:38:20Z",
+            "series": "4.0"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.0.1",
+            "publishedAt": "2021-04-27T18:41:43Z",
+            "series": "3.0"
+          },
+          {
+            "isCurrent": true,
+            "latest": "2.3.3",
+            "publishedAt": "2020-01-27T09:35:28Z",
+            "series": "2.3"
+          }
+        ],
+        "stale": false,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/jakarta.activation/jakarta.activation-api@1.2.2?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-02-20T18:37:46Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-04-20T15:11:06Z",
+        "latest": "2.1.4",
+        "latestInMajor": "1.2.2",
+        "latestInMinor": "1.2.2",
+        "latestPublishedAt": "2025-09-11T11:54:14Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "2.1.4",
+            "publishedAt": "2025-09-11T11:54:14Z",
+            "series": "2.1"
+          },
+          {
+            "isCurrent": false,
+            "latest": "2.0.1",
+            "publishedAt": "2021-04-06T18:40:56Z",
+            "series": "2.0"
+          },
+          {
+            "isCurrent": true,
+            "latest": "1.2.2",
+            "publishedAt": "2020-02-20T18:37:46Z",
+            "series": "1.2"
+          }
+        ],
+        "stale": false,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/com.sun.xml.bind/jaxb-impl@2.3.9?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2023-10-13T13:28:30Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-05-28T06:05:07Z",
+        "latest": "4.0.9",
+        "latestInMajor": "2.3.9",
+        "latestInMinor": "2.3.9",
+        "latestPublishedAt": "2026-05-28T06:05:07Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "4.0.9",
+            "publishedAt": "2026-05-28T06:05:07Z",
+            "series": "4.0"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.0.2",
+            "publishedAt": "2021-07-20T13:35:49Z",
+            "series": "3.0"
+          },
+          {
+            "isCurrent": true,
+            "latest": "2.3.9",
+            "publishedAt": "2023-10-13T13:28:30Z",
+            "series": "2.3"
+          }
+        ],
+        "stale": false,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/com.sun.activation/jakarta.activation@1.2.2?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-02-20T18:37:34Z",
+        "deprecated": null,
+        "lastReleaseAt": "2021-02-12T08:23:51Z",
+        "latest": "2.0.1",
+        "latestInMajor": "1.2.2",
+        "latestInMinor": "1.2.2",
+        "latestPublishedAt": "2021-02-12T08:23:51Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "2.0.1",
+            "publishedAt": "2021-02-12T08:23:51Z",
+            "series": "2.0"
+          },
+          {
+            "isCurrent": true,
+            "latest": "1.2.2",
+            "publishedAt": "2020-02-20T18:37:34Z",
+            "series": "1.2"
+          }
+        ],
+        "stale": true,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@9.0.122?type=jar",
+      "eol": {
+        "cycle": "9.0",
+        "cycles": [
+          {
+            "eolFrom": null,
+            "isCurrent": false,
+            "latest": "11.0.26",
+            "name": "11.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "17"
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "eolFrom": null,
+            "isCurrent": false,
+            "latest": "10.1.60",
+            "name": "10.1",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "11"
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "eolFrom": "2022-10-31",
+            "isCurrent": false,
+            "latest": "10.0.27",
+            "name": "10.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "8"
+              }
+            ],
+            "status": "eol"
+          },
+          {
+            "eolFrom": "2027-03-31",
+            "isCurrent": true,
+            "latest": "9.0.122",
+            "name": "9.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "8"
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "eolFrom": "2027-03-31",
+        "latestInCycle": "9.0.122",
+        "link": "https://endoflife.date/tomcat",
+        "matchKind": "inferred",
+        "product": "tomcat",
+        "productLabel": "Apache Tomcat",
+        "status": "supported"
+      },
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2026-09-10T07:03:07Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-10T07:03:07Z",
+        "latest": "11.0.26",
+        "latestInMajor": "9.0.122",
+        "latestInMinor": "9.0.122",
+        "latestPublishedAt": "2026-09-09T22:03:37Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "11.0.26",
+            "publishedAt": "2026-09-09T22:03:37Z",
+            "series": "11.0"
+          },
+          {
+            "isCurrent": false,
+            "latest": "10.1.60",
+            "publishedAt": "2026-09-09T22:43:58Z",
+            "series": "10.1"
+          },
+          {
+            "isCurrent": false,
+            "latest": "10.0.27",
+            "publishedAt": "2022-10-03T15:54:50Z",
+            "series": "10.0"
+          },
+          {
+            "isCurrent": true,
+            "latest": "9.0.122",
+            "publishedAt": "2026-09-10T07:03:07Z",
+            "series": "9.0"
+          }
+        ],
+        "stale": false,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.apache.tomcat/tomcat-annotations-api@9.0.122?type=jar",
+      "eol": {
+        "cycle": "9.0",
+        "cycles": [
+          {
+            "eolFrom": null,
+            "isCurrent": false,
+            "latest": "11.0.26",
+            "name": "11.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "17"
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "eolFrom": null,
+            "isCurrent": false,
+            "latest": "10.1.60",
+            "name": "10.1",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "11"
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "eolFrom": "2022-10-31",
+            "isCurrent": false,
+            "latest": "10.0.27",
+            "name": "10.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "8"
+              }
+            ],
+            "status": "eol"
+          },
+          {
+            "eolFrom": "2027-03-31",
+            "isCurrent": true,
+            "latest": "9.0.122",
+            "name": "9.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "8"
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "eolFrom": "2027-03-31",
+        "latestInCycle": "9.0.122",
+        "link": "https://endoflife.date/tomcat",
+        "matchKind": "inferred",
+        "product": "tomcat",
+        "productLabel": "Apache Tomcat",
+        "status": "supported"
+      },
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2026-09-16T02:32:02Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-16T02:32:02Z",
+        "latest": "11.0.26",
+        "latestInMajor": "9.0.122",
+        "latestInMinor": "9.0.122",
+        "latestPublishedAt": "2026-09-16T02:31:59Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "11.0.26",
+            "publishedAt": "2026-09-16T02:31:59Z",
+            "series": "11.0"
+          },
+          {
+            "isCurrent": false,
+            "latest": "10.1.60",
+            "publishedAt": "2026-09-16T02:32:00Z",
+            "series": "10.1"
+          },
+          {
+            "isCurrent": false,
+            "latest": "10.0.27",
+            "publishedAt": "2022-10-03T15:51:38Z",
+            "series": "10.0"
+          },
+          {
+            "isCurrent": true,
+            "latest": "9.0.122",
+            "publishedAt": "2026-09-16T02:32:02Z",
+            "series": "9.0"
+          }
+        ],
+        "stale": false,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-jasper@9.0.122?type=jar",
+      "eol": {
+        "cycle": "9.0",
+        "cycles": [
+          {
+            "eolFrom": null,
+            "isCurrent": false,
+            "latest": "11.0.26",
+            "name": "11.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "17"
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "eolFrom": null,
+            "isCurrent": false,
+            "latest": "10.1.60",
+            "name": "10.1",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "11"
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "eolFrom": "2022-10-31",
+            "isCurrent": false,
+            "latest": "10.0.27",
+            "name": "10.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "8"
+              }
+            ],
+            "status": "eol"
+          },
+          {
+            "eolFrom": "2027-03-31",
+            "isCurrent": true,
+            "latest": "9.0.122",
+            "name": "9.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "8"
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "eolFrom": "2027-03-31",
+        "latestInCycle": "9.0.122",
+        "link": "https://endoflife.date/tomcat",
+        "matchKind": "inferred",
+        "product": "tomcat",
+        "productLabel": "Apache Tomcat",
+        "status": "supported"
+      },
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2026-09-10T07:03:12Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-10T07:03:12Z",
+        "latest": "11.0.26",
+        "latestInMajor": "9.0.122",
+        "latestInMinor": "9.0.122",
+        "latestPublishedAt": "2026-09-09T22:03:42Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "11.0.26",
+            "publishedAt": "2026-09-09T22:03:42Z",
+            "series": "11.0"
+          },
+          {
+            "isCurrent": false,
+            "latest": "10.1.60",
+            "publishedAt": "2026-09-09T22:44:12Z",
+            "series": "10.1"
+          },
+          {
+            "isCurrent": false,
+            "latest": "10.0.27",
+            "publishedAt": "2022-10-03T15:55:15Z",
+            "series": "10.0"
+          },
+          {
+            "isCurrent": true,
+            "latest": "9.0.122",
+            "publishedAt": "2026-09-10T07:03:12Z",
+            "series": "9.0"
+          }
+        ],
+        "stale": false,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-el@9.0.122?type=jar",
+      "eol": {
+        "cycle": "9.0",
+        "cycles": [
+          {
+            "eolFrom": null,
+            "isCurrent": false,
+            "latest": "11.0.26",
+            "name": "11.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "17"
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "eolFrom": null,
+            "isCurrent": false,
+            "latest": "10.1.60",
+            "name": "10.1",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "11"
+              }
+            ],
+            "status": "supported"
+          },
+          {
+            "eolFrom": "2022-10-31",
+            "isCurrent": false,
+            "latest": "10.0.27",
+            "name": "10.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "8"
+              }
+            ],
+            "status": "eol"
+          },
+          {
+            "eolFrom": "2027-03-31",
+            "isCurrent": true,
+            "latest": "9.0.122",
+            "name": "9.0",
+            "requirements": [
+              {
+                "key": "minJavaVersion",
+                "value": "8"
+              }
+            ],
+            "status": "supported"
+          }
+        ],
+        "eolFrom": "2027-03-31",
+        "latestInCycle": "9.0.122",
+        "link": "https://endoflife.date/tomcat",
+        "matchKind": "inferred",
+        "product": "tomcat",
+        "productLabel": "Apache Tomcat",
+        "status": "supported"
+      },
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2026-09-16T02:32:00Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-16T02:32:00Z",
+        "latest": "11.0.26",
+        "latestInMajor": "9.0.122",
+        "latestInMinor": "9.0.122",
+        "latestPublishedAt": "2026-09-16T02:31:59Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "11.0.26",
+            "publishedAt": "2026-09-16T02:31:59Z",
+            "series": "11.0"
+          },
+          {
+            "isCurrent": false,
+            "latest": "10.1.60",
+            "publishedAt": "2026-09-16T02:32:00Z",
+            "series": "10.1"
+          },
+          {
+            "isCurrent": false,
+            "latest": "10.0.27",
+            "publishedAt": "2022-10-03T15:55:22Z",
+            "series": "10.0"
+          },
+          {
+            "isCurrent": true,
+            "latest": "9.0.122",
+            "publishedAt": "2026-09-16T02:32:00Z",
+            "series": "9.0"
+          }
+        ],
+        "stale": false,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.eclipse.jdt/ecj@3.26.0?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2021-06-14T16:27:08Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-08T02:16:10Z",
+        "latest": "3.46.100",
+        "latestInMajor": "3.46.100",
+        "latestInMinor": "3.26.0",
+        "latestPublishedAt": "2026-09-08T02:16:10Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "3.46.100",
+            "publishedAt": "2026-09-08T02:16:10Z",
+            "series": "3.46"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.45.0",
+            "publishedAt": "2026-03-06T05:14:10Z",
+            "series": "3.45"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.44.0",
+            "publishedAt": "2025-12-05T06:34:14Z",
+            "series": "3.44"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.43.0",
+            "publishedAt": "2025-09-05T20:30:19Z",
+            "series": "3.43"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.42.0",
+            "publishedAt": "2025-06-07T13:58:08Z",
+            "series": "3.42"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.41.0",
+            "publishedAt": "2025-03-08T08:26:44Z",
+            "series": "3.41"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.40.0",
+            "publishedAt": "2024-12-01T15:41:18Z",
+            "series": "3.40"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.39.0",
+            "publishedAt": "2024-09-06T13:37:20Z",
+            "series": "3.39"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.38.0",
+            "publishedAt": "2024-06-07T16:05:19Z",
+            "series": "3.38"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.37.0",
+            "publishedAt": "2024-03-08T19:27:46Z",
+            "series": "3.37"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.36.0",
+            "publishedAt": "2023-12-03T03:01:07Z",
+            "series": "3.36"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.35.0",
+            "publishedAt": "2023-09-08T07:06:10Z",
+            "series": "3.35"
+          }
+        ],
+        "stale": false,
+        "updateKind": "minor"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.apache.velocity/velocity-engine-core@2.4.1?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2024-10-14T05:25:08Z",
+        "deprecated": null,
+        "lastReleaseAt": "2024-10-14T05:25:08Z",
+        "latest": "2.4.1",
+        "latestInMajor": "2.4.1",
+        "latestInMinor": "2.4.1",
+        "latestPublishedAt": "2024-10-14T05:25:08Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "2.4.1",
+            "publishedAt": "2024-10-14T05:25:08Z",
+            "series": "2.4"
+          }
+        ],
+        "stale": false,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.slf4j/slf4j-api@2.0.20?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2026-09-23T02:52:54Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-23T02:52:54Z",
+        "latest": "2.0.20",
+        "latestInMajor": "2.0.20",
+        "latestInMinor": "2.0.20",
+        "latestPublishedAt": "2026-09-23T02:52:54Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "2.0.20",
+            "publishedAt": "2026-09-23T02:52:54Z",
+            "series": "2.0"
+          }
+        ],
+        "stale": false,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/ch.qos.logback/logback-core@1.3.16?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2025-10-29T15:10:22Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-30T19:40:19Z",
+        "latest": "1.6.5",
+        "latestInMajor": "1.6.5",
+        "latestInMinor": "1.3.16",
+        "latestPublishedAt": "2026-09-30T19:40:19Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "1.6.5",
+            "publishedAt": "2026-09-30T19:40:19Z",
+            "series": "1.6"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.5.38",
+            "publishedAt": "2026-07-09T08:55:33Z",
+            "series": "1.5"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.4.14",
+            "publishedAt": "2023-12-01T11:52:39Z",
+            "series": "1.4"
+          },
+          {
+            "isCurrent": true,
+            "latest": "1.3.16",
+            "publishedAt": "2025-10-29T15:10:22Z",
+            "series": "1.3"
+          }
+        ],
+        "stale": false,
+        "updateKind": "minor"
+      },
+      "vulnerabilities": [
+        {
+          "aliases": [
+            "CVE-2026-10532"
+          ],
+          "fixedVersions": [
+            "1.5.34"
+          ],
+          "id": "GHSA-jhq6-gfmj-v8fx",
+          "published": "2026-06-01T15:30:40Z",
+          "score": null,
+          "severity": "low",
+          "summary": "Logback vulnerable to Object Injection through HardenedObjectInputStream modules",
+          "url": "https://osv.dev/vulnerability/GHSA-jhq6-gfmj-v8fx"
+        },
+        {
+          "aliases": [
+            "CVE-2026-9828"
+          ],
+          "fixedVersions": [
+            "1.5.33"
+          ],
+          "id": "GHSA-p47f-322f-whfh",
+          "published": "2026-05-28T15:39:50Z",
+          "score": null,
+          "severity": "low",
+          "summary": "QOS.CH Sarl logback logback-core has a deserialization of untrusted data vulnerability",
+          "url": "https://osv.dev/vulnerability/GHSA-p47f-322f-whfh"
+        },
+        {
+          "aliases": [
+            "CVE-2026-1225"
+          ],
+          "fixedVersions": [
+            "1.5.25"
+          ],
+          "id": "GHSA-qqpg-mvqg-649v",
+          "published": "2026-01-22T12:31:22Z",
+          "score": null,
+          "severity": "low",
+          "summary": "Logback allows an attacker to instantiate classes already present on the class path",
+          "url": "https://osv.dev/vulnerability/GHSA-qqpg-mvqg-649v"
+        }
+      ]
+    },
+    {
+      "componentId": "pkg:maven/ch.qos.logback/logback-classic@1.3.16?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2025-10-29T15:10:22Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-30T19:40:19Z",
+        "latest": "1.6.5",
+        "latestInMajor": "1.6.5",
+        "latestInMinor": "1.3.16",
+        "latestPublishedAt": "2026-09-30T19:40:19Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "1.6.5",
+            "publishedAt": "2026-09-30T19:40:19Z",
+            "series": "1.6"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.5.38",
+            "publishedAt": "2026-07-09T08:55:33Z",
+            "series": "1.5"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.4.14",
+            "publishedAt": "2023-12-01T11:53:24Z",
+            "series": "1.4"
+          },
+          {
+            "isCurrent": true,
+            "latest": "1.3.16",
+            "publishedAt": "2025-10-29T15:10:22Z",
+            "series": "1.3"
+          }
+        ],
+        "stale": false,
+        "updateKind": "minor"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/junit/junit@4.13.2?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2021-02-13T16:31:52Z",
+        "deprecated": null,
+        "lastReleaseAt": "2021-02-13T16:31:52Z",
+        "latest": "4.13.2",
+        "latestInMajor": "4.13.2",
+        "latestInMinor": "4.13.2",
+        "latestPublishedAt": "2021-02-13T16:31:52Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "4.13.2",
+            "publishedAt": "2021-02-13T16:31:52Z",
+            "series": "4.13"
+          }
+        ],
+        "stale": true,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.hamcrest/hamcrest-core@1.3?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2012-07-09T21:08:02Z",
+        "deprecated": null,
+        "lastReleaseAt": "2024-08-01T09:08:16Z",
+        "latest": "3.0",
+        "latestInMajor": "1.3",
+        "latestInMinor": "1.3",
+        "latestPublishedAt": "2024-08-01T09:08:16Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "3.0",
+            "publishedAt": "2024-08-01T09:08:16Z",
+            "series": "3.0"
+          },
+          {
+            "isCurrent": false,
+            "latest": "2.2",
+            "publishedAt": "2019-10-16T20:52:31Z",
+            "series": "2.2"
+          },
+          {
+            "isCurrent": false,
+            "latest": "2.1",
+            "publishedAt": "2018-12-20T19:11:58Z",
+            "series": "2.1"
+          },
+          {
+            "isCurrent": true,
+            "latest": "1.3",
+            "publishedAt": "2012-07-09T21:08:02Z",
+            "series": "1.3"
+          }
+        ],
+        "stale": false,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.powermock/powermock-module-junit4@2.0.9?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-11-01T20:40:41Z",
+        "deprecated": null,
+        "lastReleaseAt": "2020-11-01T20:40:41Z",
+        "latest": "2.0.9",
+        "latestInMajor": "2.0.9",
+        "latestInMinor": "2.0.9",
+        "latestPublishedAt": "2020-11-01T20:40:41Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "2.0.9",
+            "publishedAt": "2020-11-01T20:40:41Z",
+            "series": "2.0"
+          }
+        ],
+        "stale": true,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.powermock/powermock-module-junit4-common@2.0.9?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-11-01T20:40:41Z",
+        "deprecated": null,
+        "lastReleaseAt": "2020-11-01T20:40:41Z",
+        "latest": "2.0.9",
+        "latestInMajor": "2.0.9",
+        "latestInMinor": "2.0.9",
+        "latestPublishedAt": "2020-11-01T20:40:41Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "2.0.9",
+            "publishedAt": "2020-11-01T20:40:41Z",
+            "series": "2.0"
+          }
+        ],
+        "stale": true,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.powermock/powermock-reflect@2.0.9?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-11-01T20:40:43Z",
+        "deprecated": null,
+        "lastReleaseAt": "2020-11-01T20:40:43Z",
+        "latest": "2.0.9",
+        "latestInMajor": "2.0.9",
+        "latestInMinor": "2.0.9",
+        "latestPublishedAt": "2020-11-01T20:40:43Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "2.0.9",
+            "publishedAt": "2020-11-01T20:40:43Z",
+            "series": "2.0"
+          }
+        ],
+        "stale": true,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/net.bytebuddy/byte-buddy@1.10.14?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-07-31T19:04:56Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-16T02:00:56Z",
+        "latest": "1.18.14",
+        "latestInMajor": "1.18.14",
+        "latestInMinor": "1.10.22",
+        "latestPublishedAt": "2026-09-16T02:00:56Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "1.18.14",
+            "publishedAt": "2026-09-16T02:00:56Z",
+            "series": "1.18"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.17.8",
+            "publishedAt": "2025-10-08T22:33:23Z",
+            "series": "1.17"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.16.1",
+            "publishedAt": "2025-01-19T07:40:23Z",
+            "series": "1.16"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.15.11",
+            "publishedAt": "2024-12-15T09:09:28Z",
+            "series": "1.15"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.14.19",
+            "publishedAt": "2024-08-15T23:03:58Z",
+            "series": "1.14"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.13.0",
+            "publishedAt": "2023-02-10T17:53:26Z",
+            "series": "1.13"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.12.23",
+            "publishedAt": "2023-02-05T09:55:07Z",
+            "series": "1.12"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.11.22",
+            "publishedAt": "2021-10-29T18:42:37Z",
+            "series": "1.11"
+          },
+          {
+            "isCurrent": true,
+            "latest": "1.10.22",
+            "publishedAt": "2021-03-09T18:44:22Z",
+            "series": "1.10"
+          }
+        ],
+        "stale": false,
+        "updateKind": "minor"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/net.bytebuddy/byte-buddy-agent@1.10.14?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-07-31T19:01:54Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-16T01:56:46Z",
+        "latest": "1.18.14",
+        "latestInMajor": "1.18.14",
+        "latestInMinor": "1.10.22",
+        "latestPublishedAt": "2026-09-16T01:56:45Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "1.18.14",
+            "publishedAt": "2026-09-16T01:56:45Z",
+            "series": "1.18"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.17.8",
+            "publishedAt": "2025-10-08T22:33:23Z",
+            "series": "1.17"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.16.1",
+            "publishedAt": "2025-01-19T07:40:25Z",
+            "series": "1.16"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.15.11",
+            "publishedAt": "2024-12-15T09:09:26Z",
+            "series": "1.15"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.14.19",
+            "publishedAt": "2024-08-15T23:04:00Z",
+            "series": "1.14"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.13.0",
+            "publishedAt": "2023-02-10T17:53:26Z",
+            "series": "1.13"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.12.23",
+            "publishedAt": "2023-02-05T09:55:11Z",
+            "series": "1.12"
+          },
+          {
+            "isCurrent": false,
+            "latest": "1.11.22",
+            "publishedAt": "2021-10-29T18:42:26Z",
+            "series": "1.11"
+          },
+          {
+            "isCurrent": true,
+            "latest": "1.10.22",
+            "publishedAt": "2021-03-09T18:44:01Z",
+            "series": "1.10"
+          }
+        ],
+        "stale": false,
+        "updateKind": "minor"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.powermock/powermock-core@2.0.9?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-11-01T20:40:50Z",
+        "deprecated": null,
+        "lastReleaseAt": "2020-11-01T20:40:50Z",
+        "latest": "2.0.9",
+        "latestInMajor": "2.0.9",
+        "latestInMinor": "2.0.9",
+        "latestPublishedAt": "2020-11-01T20:40:50Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "2.0.9",
+            "publishedAt": "2020-11-01T20:40:50Z",
+            "series": "2.0"
+          }
+        ],
+        "stale": true,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.powermock/powermock-api-mockito2@2.0.9?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-11-01T20:40:43Z",
+        "deprecated": null,
+        "lastReleaseAt": "2020-11-01T20:40:43Z",
+        "latest": "2.0.9",
+        "latestInMajor": "2.0.9",
+        "latestInMinor": "2.0.9",
+        "latestPublishedAt": "2020-11-01T20:40:43Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "2.0.9",
+            "publishedAt": "2020-11-01T20:40:43Z",
+            "series": "2.0"
+          }
+        ],
+        "stale": true,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.powermock/powermock-api-support@2.0.9?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-11-01T20:40:55Z",
+        "deprecated": null,
+        "lastReleaseAt": "2020-11-01T20:40:55Z",
+        "latest": "2.0.9",
+        "latestInMajor": "2.0.9",
+        "latestInMinor": "2.0.9",
+        "latestPublishedAt": "2020-11-01T20:40:55Z",
+        "series": [
+          {
+            "isCurrent": true,
+            "latest": "2.0.9",
+            "publishedAt": "2020-11-01T20:40:55Z",
+            "series": "2.0"
+          }
+        ],
+        "stale": true,
+        "updateKind": "none"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.mockito/mockito-core@3.3.3?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2020-03-13T18:58:30Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-09-24T02:37:34Z",
+        "latest": "5.24.0",
+        "latestInMajor": "3.12.4",
+        "latestInMinor": "3.3.3",
+        "latestPublishedAt": "2026-09-24T02:37:34Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "5.24.0",
+            "publishedAt": "2026-09-24T02:37:34Z",
+            "series": "5.24"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.23.0",
+            "publishedAt": "2026-03-11T20:57:39Z",
+            "series": "5.23"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.22.0",
+            "publishedAt": "2026-02-27T09:52:06Z",
+            "series": "5.22"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.21.0",
+            "publishedAt": "2025-12-09T19:14:52Z",
+            "series": "5.21"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.20.0",
+            "publishedAt": "2025-09-20T09:02:41Z",
+            "series": "5.20"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.19.0",
+            "publishedAt": "2025-08-15T07:02:31Z",
+            "series": "5.19"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.18.0",
+            "publishedAt": "2025-05-20T19:20:37Z",
+            "series": "5.18"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.17.0",
+            "publishedAt": "2025-04-04T13:26:03Z",
+            "series": "5.17"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.16.1",
+            "publishedAt": "2025-03-15T19:35:36Z",
+            "series": "5.16"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.15.2",
+            "publishedAt": "2025-01-02T18:28:16Z",
+            "series": "5.15"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.14.2",
+            "publishedAt": "2024-10-15T13:07:05Z",
+            "series": "5.14"
+          },
+          {
+            "isCurrent": false,
+            "latest": "5.13.0",
+            "publishedAt": "2024-08-27T18:07:56Z",
+            "series": "5.13"
+          }
+        ],
+        "stale": false,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    },
+    {
+      "componentId": "pkg:maven/org.objenesis/objenesis@2.6?type=jar",
+      "eol": null,
+      "errors": [],
+      "licenses": [],
+      "version": {
+        "currentNotFound": false,
+        "currentPublishedAt": "2017-06-20T15:28:34Z",
+        "deprecated": null,
+        "lastReleaseAt": "2026-08-03T00:08:59Z",
+        "latest": "3.6",
+        "latestInMajor": "2.6",
+        "latestInMinor": "2.6",
+        "latestPublishedAt": "2026-08-03T00:08:59Z",
+        "series": [
+          {
+            "isCurrent": false,
+            "latest": "3.6",
+            "publishedAt": "2026-08-03T00:08:59Z",
+            "series": "3.6"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.5",
+            "publishedAt": "2026-01-26T02:48:10Z",
+            "series": "3.5"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.4",
+            "publishedAt": "2024-05-06T03:22:28Z",
+            "series": "3.4"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.3",
+            "publishedAt": "2022-07-31T22:30:10Z",
+            "series": "3.3"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.2",
+            "publishedAt": "2021-03-22T03:19:59Z",
+            "series": "3.2"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.1",
+            "publishedAt": "2019-10-05T03:55:36Z",
+            "series": "3.1"
+          },
+          {
+            "isCurrent": false,
+            "latest": "3.0.1",
+            "publishedAt": "2018-10-19T00:55:47Z",
+            "series": "3.0"
+          },
+          {
+            "isCurrent": true,
+            "latest": "2.6",
+            "publishedAt": "2017-06-20T15:28:34Z",
+            "series": "2.6"
+          }
+        ],
+        "stale": false,
+        "updateKind": "major"
+      },
+      "vulnerabilities": []
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+[package]
+name = "software-update-checker"
+version = "0.1.0"
+description = "SBOM / pom.xml から依存ソフトウェアを一覧化し、最新版・脆弱性・EOL を確認する GUI ツール"
+edition = "2021"
+rust-version = "1.82"
+
+[lib]
+name = "software_update_checker_lib"
+# デスクトップのみ対象。モバイル対応時は "staticlib", "cdylib" を追加する。
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# OS の TLS ライブラリに依存しないよう rustls を使う
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+roxmltree = "0.20"
+tokio = { version = "1", features = ["sync", "rt", "time"] }
+# jar 内のクラスファイル（deflate）の展開。tauri の依存に既に含まれている
+miniz_oxide = "0.8"
+
+[profile.release]
+# 配布サイズを小さくする
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

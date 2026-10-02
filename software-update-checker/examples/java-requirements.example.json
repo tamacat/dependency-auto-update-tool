@@ -1,0 +1,117 @@
+{
+  "$comment": "共有用 Java 要件ナレッジの見本。2026-10-03 に各系列の最新版の jar のクラスファイルから判定した結果を、系列単位の手動記録として登録したもの。「Java 要件」タブの「取り込み…」で手元に取り込むか、「共有ファイル」に追加して読み込み専用で参照できる。",
+  "format": "software-update-checker/java-requirements",
+  "formatVersion": 1,
+  "entries": [
+    {
+      "ecosystem": "maven",
+      "group": "ch.qos.logback",
+      "artifact": "*",
+      "series": "1.3",
+      "java": "8",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "Java 8 で使える最後の系列（1.3.16 のクラスファイルは 52）。Servlet は javax 系"
+    },
+    {
+      "ecosystem": "maven",
+      "group": "ch.qos.logback",
+      "artifact": "*",
+      "series": "1.4",
+      "java": "11",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "1.4 系から Java 11 必須（1.4.14 のクラスファイルは 55）。Jakarta EE（jakarta.servlet）対応"
+    },
+    {
+      "ecosystem": "maven",
+      "group": "ch.qos.logback",
+      "artifact": "*",
+      "series": "1.5",
+      "java": "11",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "1.5.38 のクラスファイルは 55"
+    },
+    {
+      "ecosystem": "maven",
+      "group": "ch.qos.logback",
+      "artifact": "*",
+      "series": "1.6",
+      "java": "11",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "1.6.5 のクラスファイルは 55"
+    },
+    {
+      "ecosystem": "maven",
+      "group": "com.sun.xml.bind",
+      "artifact": "jaxb-impl",
+      "series": "2.3",
+      "java": "8",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "javax.xml.bind 名前空間"
+    },
+    {
+      "ecosystem": "maven",
+      "group": "com.sun.xml.bind",
+      "artifact": "jaxb-impl",
+      "series": "3.0",
+      "java": "8",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "jakarta.xml.bind 名前空間に移行（API 非互換）。Java は 8 のまま"
+    },
+    {
+      "ecosystem": "maven",
+      "group": "com.sun.xml.bind",
+      "artifact": "jaxb-impl",
+      "series": "4.0",
+      "java": "11",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "4.0.9 のクラスファイルは 55"
+    },
+    {
+      "ecosystem": "maven",
+      "group": "org.apache.tomcat.embed",
+      "artifact": "*",
+      "series": "9.0",
+      "java": "8",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "javax.servlet。endoflife.date の minJavaVersion とも一致"
+    },
+    {
+      "ecosystem": "maven",
+      "group": "org.apache.tomcat.embed",
+      "artifact": "*",
+      "series": "10.0",
+      "java": "8",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "jakarta.servlet に移行（API 非互換）。サポート終了済み（2022-10-31）"
+    },
+    {
+      "ecosystem": "maven",
+      "group": "org.apache.tomcat.embed",
+      "artifact": "*",
+      "series": "10.1",
+      "java": "11",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "10.1.60 のクラスファイルは 55。endoflife.date の minJavaVersion とも一致"
+    },
+    {
+      "ecosystem": "maven",
+      "group": "org.apache.tomcat.embed",
+      "artifact": "*",
+      "series": "11.0",
+      "java": "17",
+      "source": "manual",
+      "checkedAt": "2026-10-03",
+      "note": "11.0.26 のクラスファイルは 61。endoflife.date の minJavaVersion とも一致"
+    }
+  ]
+}

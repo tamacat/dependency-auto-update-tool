@@ -1,0 +1,27 @@
+{
+  "$comment": "endoflife.date の purl 識別子に載っていないパッケージを製品に対応付ける表。キーはバージョンなしの purl。'/' で終わるキーはその namespace 配下すべてに前方一致し、それ以外は完全一致。値は endoflife.date の製品名。複数一致したら最も長いキーを使う。",
+  "prefixes": {
+    "pkg:maven/org.apache.tomcat/": "tomcat",
+    "pkg:maven/org.apache.tomcat.embed/": "tomcat",
+    "pkg:maven/org.eclipse.jetty/": "eclipse-jetty",
+    "pkg:maven/org.eclipse.jetty.ee10/": "eclipse-jetty",
+    "pkg:maven/org.springframework/": "spring-framework",
+    "pkg:maven/org.springframework.boot/": "spring-boot",
+    "pkg:maven/org.springframework.security/": "spring-security",
+    "pkg:maven/org.springframework.cloud/spring-cloud-dependencies": "spring-cloud",
+    "pkg:maven/org.hibernate.orm/": "hibernate-orm",
+    "pkg:maven/org.hibernate/hibernate-core": "hibernate-orm",
+    "pkg:maven/org.apache.logging.log4j/": "log4j",
+    "pkg:maven/org.jetbrains.kotlin/kotlin-stdlib": "kotlin",
+    "pkg:maven/org.scala-lang/scala-library": "scala",
+    "pkg:maven/org.apache.groovy/": "apache-groovy",
+    "pkg:maven/io.quarkus/": "quarkus-framework",
+    "pkg:maven/io.micronaut/": "micronaut",
+    "pkg:npm/react": "react",
+    "pkg:npm/react-dom": "react",
+    "pkg:npm/vue": "vue",
+    "pkg:npm/%40angular/core": "angular",
+    "pkg:npm/angular": "angularjs",
+    "pkg:pypi/django": "django"
+  }
+}
