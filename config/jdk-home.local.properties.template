@@ -13,7 +13,7 @@
 # branch.<name>.expectedJdkMajor policy (business-rules.md BR-3) -- this
 # tool's own reference deployment, tamacat-httpd, declares two branches with
 # different JDK baselines, verified against the live repository:
-#   master      -> JDK 8
+#   v1.6        -> JDK 8
 #   v2.0-tc11   -> JDK 25
 #
 # The tool validates that whatever path you set here actually reports that
@@ -22,5 +22,5 @@
 # to its own running JVM, which targets a modern Java version independent of
 # either branch.
 
-jdkHome.master=/path/to/your/jdk-8
+jdkHome.v1.6=/path/to/your/jdk-8
 jdkHome.v2.0-tc11=/path/to/your/jdk-25

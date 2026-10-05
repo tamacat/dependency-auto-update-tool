@@ -13,7 +13,7 @@ import java.util.Properties;
  * Reads the machine-local, gitignored JDK-home mapping from a
  * {@code .properties} file (Code Generation's own format choice, per
  * tech-stack-decisions.md's deferral). Keys look like
- * {@code jdkHome.<branch>=<path>}, e.g. {@code jdkHome.master=/opt/jdk8}.
+ * {@code jdkHome.<branch>=<path>}, e.g. {@code jdkHome.v1.6=/opt/jdk8}.
  *
  * <p>A missing file is not an error here -- it simply resolves nothing for
  * every branch, which {@code Detector.validateEnvironment()} then reports as

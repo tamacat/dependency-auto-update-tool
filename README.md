@@ -12,7 +12,7 @@ policy you declare in `config/tool.properties` (see
 [Configuration](#configuration)); the tool ships no hardcoded branch list of
 its own. It was originally built for, and ships pre-configured for, its
 reference deployment: [`tamacat-httpd`](https://github.com/tamacat/tamacat-httpd)
-(branches `master` -> JDK 8, `v2.0-tc11` -> JDK 25).
+(branches `v1.6` -> JDK 8, `v2.0-tc11` -> JDK 25).
 
 ## What it does, in order
 
@@ -49,6 +49,11 @@ that project before being extracted into its own repository.
 
 ## Building
 
+Building and running this tool requires JDK 25 or later
+(`maven.compiler.release` is 25). This is the JDK this tool itself runs on,
+independent of the JDKs it validates each target branch with (see
+[Setup](#setup-once-per-machine-before-first-use)).
+
 ```
 mvn clean package
 ```
@@ -73,7 +78,7 @@ branch declared in `config/tool.properties`, e.g. (tamacat-httpd's own
 reference values):
 
 ```
-jdkHome.master=/opt/amazon-corretto-8
+jdkHome.v1.6=/opt/amazon-corretto-8
 jdkHome.v2.0-tc11=/opt/amazon-corretto-25
 ```
 
