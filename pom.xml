@@ -21,14 +21,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!--
-      This module's own Java target is deliberately independent of either
-      branch this tool validates (master = Java 8, v2.0-tc11 = Java 25; see
-      business-rules.md BR-3 in the design record). 21 is an LTS release,
-      available in this development environment, and supports the sealed
-      interfaces / records / pattern-matching switch this codebase uses.
-    -->
-    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.release>25</maven.compiler.release>
   </properties>
 
   <dependencies>

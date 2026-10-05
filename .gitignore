@@ -1,3 +1,30 @@
+# ---- ビルド・実行結果
+# Maven のビルド出力（software-update-checker/src-tauri/target/ にも当てはまる）
 target/
+# このツールの実行レポート（実行ごとに生成）
 reports/
+# マシンごとの JDK の場所（config/jdk-home.local.properties.template から作る）
 config/jdk-home.local.properties
+
+# ---- IDE
+# Eclipse
+.classpath
+.project
+.settings/
+.factorypath
+# IntelliJ IDEA
+.idea/
+*.iml
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# ---- OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- ログ・一時ファイル
+*.log
+*.tmp
+*~

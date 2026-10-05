@@ -1,5 +1,27 @@
+# ---- 依存（npm install で復元する）
 node_modules/
+
+# ---- ビルド出力
+# フロントエンド（本番用と、CSP 確認用の mock ビルド）
 dist/
 dist-mock/
+# Rust / Tauri（実行ファイルとインストーラーもここに出る）
 src-tauri/target/
+# Tauri がビルド時に生成する権限スキーマ
 src-tauri/gen/
+# Vite のキャッシュと設定の一時ファイル
+.vite/
+vite.config.ts.timestamp-*
+
+# ---- ログ
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- 環境変数・秘密情報（自動更新用の署名鍵などを誤ってコミットしないため）
+.env
+.env.*
+!.env.example
+*.key
+*.pem

@@ -166,6 +166,20 @@ npm run tauri build
 
 `npm run tauri build` で、`src-tauri/target/release/bundle/` 配下にインストーラー（Windows は MSI / NSIS）が作られます。
 
+インストーラーを作らず、実行ファイル 1 つだけを作る場合:
+
+```bash
+npm run tauri build -- --no-bundle
+```
+
+`src-tauri/target/release/software-update-checker.exe`（約 5MB）ができます。
+
+- **単体で動く**: 画面と同梱データは exe に埋め込まれており、Visual C++ ランタイムなどの DLL も不要です。コピーするだけで使えます。
+- **必要な環境**: Microsoft Edge WebView2 ランタイム（Windows 11 と、更新済みの Windows 10 には標準搭載）。
+- **任意**: 「Maven で SBOM 生成」を使う場合だけ、PATH に Maven が必要です。
+- **設定・ナレッジ・ログ・キャッシュ**: exe の横ではなく、ユーザーのアプリデータフォルダ（`%APPDATA%` / `%LOCALAPPDATA%` の `org.tamacat.software-update-checker`）に保存します。
+- **コード署名**: していないため、初回起動時に Windows SmartScreen の警告が出ることがあります。
+
 テストと型チェック:
 
 ```bash
