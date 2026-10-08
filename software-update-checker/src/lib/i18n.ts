@@ -5,6 +5,14 @@
 import { prefs, type Locale } from './prefs.svelte';
 
 const ja = {
+  "about.noticesTitle": "第三者ライセンス",
+  "about.showNotices": "第三者ライセンスを表示",
+  "about.dataNote": "これらのデータは各サービスから取得したもので、それぞれのライセンスに従います。このアプリは取得したデータを加工せずに表示・判定に使っています。",
+  "about.dataSources": "表示しているデータの提供元とライセンス:",
+  "about.source": "ソースコード",
+  "about.license": "ライセンス",
+  "about.version": "バージョン",
+  "about.title": "このソフトウェアについて",
   "source.loadRelated": "{file} を読み込む",
   "source.related": "同じ場所の SBOM:",
   "external.failed": "ページを開けません",
@@ -261,6 +269,14 @@ const ja = {
 export type MessageKey = keyof typeof ja;
 
 const en: Record<MessageKey, string> = {
+  "about.noticesTitle": "Third-party licenses",
+  "about.showNotices": "Show third-party licenses",
+  "about.dataNote": "This data is retrieved from each service and is subject to its license. The application uses it unmodified for display and evaluation.",
+  "about.dataSources": "Data shown in this application is provided by:",
+  "about.source": "Source code",
+  "about.license": "License",
+  "about.version": "Version",
+  "about.title": "About",
   "source.loadRelated": "Load {file}",
   "source.related": "SBOM next to this file:",
   "external.failed": "Cannot open the page",

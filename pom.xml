@@ -18,6 +18,15 @@
     pre-configured for, its reference deployment: tamacat-httpd
     (https://github.com/tamacat/tamacat-httpd).
   </description>
+  <url>https://github.com/tamacat/dependency-auto-update-tool</url>
+
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

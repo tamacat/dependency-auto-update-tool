@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getVersion } from '@tauri-apps/api/app';
   import { t } from './i18n';
   import { availableTimeZones, FONT_SCALES, isValidTimeZone, prefs, systemTimeZone } from './prefs.svelte';
   import { DEFAULT_NETWORK, DEFAULT_OPTIONS, NETWORK_LIMITS, type CheckOptions, type DataSource, type NetworkSettings } from './types';
@@ -13,6 +14,28 @@
 
   let dialog: HTMLDialogElement;
   $effect(() => dialog.showModal());
+
+  // ---- このソフトウェアについて
+  let version = $state('');
+  getVersion()
+    .then((v) => (version = v))
+    .catch(() => {});
+
+  /** アプリが表示する外部データの出典とライセンス（README の「データソース」と同じ） */
+  const DATA_ATTRIBUTIONS: { name: string; url: string; license: string; licenseUrl: string }[] = [
+    { name: 'deps.dev (Open Source Insights)', url: 'https://deps.dev/', license: 'CC BY 4.0', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/' },
+    { name: 'OSV.dev / GitHub Advisory Database', url: 'https://osv.dev/', license: 'CC BY 4.0', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/' },
+    { name: 'endoflife.date', url: 'https://endoflife.date/', license: 'MIT', licenseUrl: 'https://github.com/endoflife-date/endoflife.date/blob/master/LICENSE' },
+  ];
+
+  let noticesDialog: HTMLDialogElement;
+  let notices = $state<string | null>(null);
+
+  async function showNotices() {
+    // 約 600KB あるので、開いたときに初めて読み込む（別ファイルとして同梱される）
+    if (notices === null) notices = (await import('../../THIRD-PARTY-NOTICES.txt?raw')).default;
+    noticesDialog.showModal();
+  }
 
   const NETWORK_FIELDS: { key: keyof NetworkSettings; label: MessageKey; unit: MessageKey }[] = [
     { key: 'maxRetries', label: 'net.maxRetries', unit: 'unit.times' },
@@ -179,10 +202,44 @@
       <label><input type="checkbox" bind:checked={options.useCache} /> {t('settings.useCache')}</label>
       <button onclick={onClearCache}>{t('settings.clearCache')}</button>
     </fieldset>
+
+    <fieldset>
+      <legend>{t('about.title')}</legend>
+      <div class="form-grid">
+        <span>{t('about.version')}</span>
+        <span class="mono">Software Update Checker {version}</span>
+        <span>{t('about.license')}</span>
+        <span>Apache License 2.0 <span class="muted small">(Copyright 2026 tamacat.org)</span></span>
+        <span>{t('about.source')}</span>
+        <span class="mono small break">https://github.com/tamacat/dependency-auto-update-tool</span>
+      </div>
+      <div class="small">{t('about.dataSources')}</div>
+      <ul class="links small">
+        {#each DATA_ATTRIBUTIONS as d (d.name)}
+          <li>{d.name} <span class="muted">({d.url})</span> — {d.license} <span class="muted">({d.licenseUrl})</span></li>
+        {/each}
+      </ul>
+      <p class="muted small">{t('about.dataNote')}</p>
+      <button onclick={showNotices}>{t('about.showNotices')}</button>
+    </fieldset>
   </div>
 
   <footer class="dialog-actions">
     <button onclick={resetAll}>{t('settings.resetAll')}</button>
     <button class="primary" onclick={() => dialog.close()}>{t('common.close')}</button>
   </footer>
+
+  <!-- 第三者ライセンスの全文（exe 単体で配布されても表記が失われないよう、アプリに同梱している） -->
+  <dialog bind:this={noticesDialog} class="settings notices" aria-labelledby="notices-title">
+    <header class="dialog-head">
+      <h2 id="notices-title">{t('about.noticesTitle')}</h2>
+      <button class="icon" aria-label={t('common.close')} title={t('common.close')} onclick={() => noticesDialog.close()}>×</button>
+    </header>
+    <div class="dialog-body">
+      <pre class="notices-text">{notices ?? ''}</pre>
+    </div>
+    <footer class="dialog-actions">
+      <button class="primary" onclick={() => noticesDialog.close()}>{t('common.close')}</button>
+    </footer>
+  </dialog>
 </dialog>

@@ -41,11 +41,14 @@ reference deployment: [`tamacat-httpd`](https://github.com/tamacat/tamacat-httpd
 5. **Reporting**: everything above is written to the console and to a
    structured report file.
 
-See [`tamacat-httpd`](https://github.com/tamacat/tamacat-httpd)'s
-`aidlc/spaces/default/intents/260903-dependency-auto-update/` AI-DLC record
-for this tool's full original design rationale (requirements, architecture
-decisions, business rules) -- this tool was designed and generated inside
-that project before being extracted into its own repository.
+This tool was originally designed and built alongside
+[`tamacat-httpd`](https://github.com/tamacat/tamacat-httpd) and later
+extracted into its own repository. The behavior that matters to users is
+described in this README and in the comments of `config/tool.properties`.
+Some source code comments refer to the original design notes by identifier
+(for example `BR-3` for a business rule or `ADR-4` for an architecture
+decision); those notes are not published, and the comments themselves
+describe the behavior they refer to.
 
 ## Building
 
@@ -170,3 +173,12 @@ unresolved commit failure, not a new problem.
   version free of known CVEs."
 - No multi-module reactor support -- it reads exactly one `pom.xml` at the
   given `repoRoot`.
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE).
+
+The command-line tool has no runtime dependencies beyond the JDK. The
+[`software-update-checker`](software-update-checker/) GUI bundles third-party
+open source components; their licenses are listed in
+[`software-update-checker/THIRD-PARTY-NOTICES.txt`](software-update-checker/THIRD-PARTY-NOTICES.txt).

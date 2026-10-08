@@ -215,6 +215,8 @@ export function install() {
         case 'set_language':
           language = String(a.language ?? 'ja');
           return null;
+        case 'plugin:app|version':
+          return '0.1.0';
         case 'data_sources':
           return language === 'en' ? SOURCES.map((x) => ({ ...x, ...SOURCES_EN[x.id] })) : SOURCES;
         case 'activity_log':

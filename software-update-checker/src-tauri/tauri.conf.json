@@ -28,6 +28,9 @@
   },
   "bundle": {
     "active": true,
+    "publisher": "tamacat.org",
+    "copyright": "Copyright 2026 tamacat.org. Licensed under the Apache License 2.0.",
+    "license": "Apache-2.0",
     "targets": "all",
     "icon": [
       "icons/32x32.png",

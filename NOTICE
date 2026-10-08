@@ -1,0 +1,14 @@
+dependency-auto-update-tool
+Copyright 2026 tamacat.org
+
+This product is licensed under the Apache License, Version 2.0
+(see the LICENSE file).
+
+The software-update-checker application bundles third-party open source
+components. Their copyright notices and license texts are listed in
+software-update-checker/THIRD-PARTY-NOTICES.txt and can also be viewed in
+the application (Settings > About).
+
+Data shown by software-update-checker is retrieved at run time from external
+services and remains subject to their own licenses (see
+software-update-checker/README.md, "Data sources").

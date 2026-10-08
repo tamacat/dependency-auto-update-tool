@@ -1,0 +1,32 @@
+# cargo-about の設定（THIRD-PARTY-NOTICES.txt の生成に使う。npm run notices）
+#
+# 配布するデスクトップ版の全ターゲットを対象にし、実行ファイルに入らない
+# ビルド時・開発時だけの依存は除く。ここにないライセンスの依存が増えたら
+# 生成が失敗するので、互換性を確認してから追加すること。
+accepted = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "MIT-0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "0BSD",
+    "BSL-1.0",
+    "CC0-1.0",
+    "Unlicense",
+    "Unicode-3.0",
+    "CDLA-Permissive-2.0",
+    # ファイル単位のコピーレフト。改変せずに使う限り、全体を Apache-2.0 で配布できる
+    "MPL-2.0",
+]
+targets = [
+    "x86_64-pc-windows-msvc",
+    "aarch64-pc-windows-msvc",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+]
+ignore-build-dependencies = true
+ignore-dev-dependencies = true

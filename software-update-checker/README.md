@@ -34,6 +34,15 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 | Maven Central | repo1.maven.org | jar から必要な Java を判定（詳細画面を開いたとき、ナレッジに記録が無いものだけ） | groupId・artifactId・バージョン（URL）。jar は末尾と数クラス分だけ Range で部分取得 | ナレッジに記録 |
 | ローカルの Maven | （mvn が設定に従って通信） | 「Maven で SBOM 生成」 | Maven の依存解決による通信。このツールの外で行われるため、ログには実行の開始・終了のみ | — |
 
+取得したデータは各サービスのライセンスに従います。アプリの「設定 → このソフトウェアについて」にも出典を表示しています。
+
+| データソース | データのライセンス |
+|---|---|
+| deps.dev | deps.dev が生成したデータは [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| OSV.dev | 収録元ごとのライセンス。GitHub Advisory Database 由来のものは [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| endoflife.date | [MIT](https://github.com/endoflife-date/endoflife.date/blob/master/LICENSE) |
+| Maven Central | jar から判定した Java のバージョン（事実情報） |
+
 - 設定画面でデータソースごとに ON/OFF できます。OFF にしたデータソースへの通信は、HTTP 層で**送信前に遮断**し、遮断したこと自体も記録します。登録されていないホストへの通信も同様に遮断します。
 - キャッシュはアプリのキャッシュディレクトリ（Windows は `%LOCALAPPDATA%\org.tamacat.software-update-checker\http-cache.json`）に保存します。
 - HTTP(S) プロキシは環境変数 `HTTPS_PROXY` / `HTTP_PROXY` に従います。
@@ -203,6 +212,26 @@ cd src-tauri && SUC_LIVE_INPUT=path/to/pom.xml SUC_LIVE_DUMP=../src/lib/fixtures
 ### アイコン
 
 `app-icon.png`（1024×1024）から `npx tauri icon app-icon.png` で `src-tauri/icons/` を作り直せます。
+
+## ライセンス
+
+[Apache License 2.0](../LICENSE)（Copyright 2026 tamacat.org）です。
+
+### 第三者ライセンス
+
+実行ファイルに組み込まれる Rust のクレートと、画面に同梱される npm パッケージのライセンス本文を [`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt) にまとめています。exe 単体で配布されても表記が失われないよう、アプリの「設定 → このソフトウェアについて → 第三者ライセンスを表示」からも見られます。
+
+依存を追加・更新したら作り直してコミットします（`cargo install --locked cargo-about --features cli` が必要）。
+
+```bash
+npm run notices
+```
+
+- 対象は、配布するデスクトップ版の全ターゲット（Windows / macOS / Linux）です。ビルド時・開発時だけの依存は含みません（[`about.toml`](about.toml)）。
+- 許可したライセンス（MIT、Apache-2.0、BSD、ISC、Zlib、Unicode-3.0、MPL-2.0 など）以外の依存が増えると生成が失敗するので、互換性を確認してから `about.toml` に追加してください。
+- MPL-2.0 のクレート（cssparser、selectors など）は改変せずに使っています。ソースは crates.io から入手できます。
+
+画面確認用の模擬データに含まれる外部データの出典は、[`src/lib/fixtures/README.md`](src/lib/fixtures/README.md) にあります。
 
 ## 未対応・今後の課題
 

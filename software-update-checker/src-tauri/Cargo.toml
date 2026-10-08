@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "SBOM / pom.xml から依存ソフトウェアを一覧化し、最新版・脆弱性・EOL を確認する GUI ツール"
 edition = "2021"
 rust-version = "1.82"
+license = "Apache-2.0"
+repository = "https://github.com/tamacat/dependency-auto-update-tool"
 
 [lib]
 name = "software_update_checker_lib"

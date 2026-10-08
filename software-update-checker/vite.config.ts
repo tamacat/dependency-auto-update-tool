@@ -12,5 +12,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
+    // 第三者ライセンス表記（約 600KB のテキスト）を別ファイルで同梱しているため、警告の基準を上げる
+    chunkSizeWarningLimit: 700,
   },
 });
