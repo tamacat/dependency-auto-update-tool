@@ -141,23 +141,36 @@ jobs:
         shell: bash
         working-directory: software-update-checker
         run: |
+          # Release の添付ファイル名は空白なしの「製品名_版_OS-アーキテクチャ」にそろえる
+          # （空白は GitHub で "." に置き換えられ、SHA256SUMS.txt の名前と食い違うため）
           version=$(node -p "require('./package.json').version")
           release="src-tauri/target/${{ matrix.target }}/release"
           out="${GITHUB_WORKSPACE}/out"
+          name="software-update-checker_${version}_${{ matrix.platform }}"
           mkdir -p "$out"
+          one() {
+            # 指定したパターンに一致するファイルがちょうど 1 つであることを確かめてコピーする
+            local files=( $1 )
+            if [ "${#files[@]}" -ne 1 ] || [ ! -f "${files[0]}" ]; then
+              echo "::error::Expected exactly one file for $1, found: ${files[*]}"
+              exit 1
+            fi
+            cp "${files[0]}" "$out/$2"
+          }
           case "${{ matrix.platform }}" in
             windows-*)
               # インストーラーなしで使える実行ファイル単体と、インストーラー（NSIS / MSI）
-              cp "$release/software-update-checker.exe" "$out/software-update-checker_${version}_${{ matrix.platform }}.exe"
-              cp "$release"/bundle/nsis/*.exe "$release"/bundle/msi/*.msi "$out/"
+              one "$release/software-update-checker.exe" "${name}.exe"
+              one "$release/bundle/nsis/*.exe" "${name}-setup.exe"
+              one "$release/bundle/msi/*.msi" "${name}.msi"
               ;;
             macos-*)
-              for f in "$release"/bundle/dmg/*.dmg; do
-                cp "$f" "$out/$(basename "${f%.dmg}")_${{ matrix.platform }}.dmg"
-              done
+              one "$release/bundle/dmg/*.dmg" "${name}.dmg"
               ;;
             linux-*)
-              cp "$release"/bundle/appimage/*.AppImage "$release"/bundle/deb/*.deb "$release"/bundle/rpm/*.rpm "$out/"
+              one "$release/bundle/appimage/*.AppImage" "${name}.AppImage"
+              one "$release/bundle/deb/*.deb" "${name}.deb"
+              one "$release/bundle/rpm/*.rpm" "${name}.rpm"
               ;;
           esac
           ls -la "$out"
@@ -238,10 +251,10 @@ jobs:
 
           | ファイル | 内容 |
           |---|---|
-          | \`software-update-checker_*_windows-x64.exe\` | Windows 用。インストール不要の実行ファイル単体 |
-          | \`Software Update Checker_*_x64-setup.exe\` / \`*.msi\` | Windows 用インストーラー |
+          | \`*_windows-x64.exe\` | Windows 用。インストール不要の実行ファイル単体 / Windows, standalone executable |
+          | \`*_windows-x64-setup.exe\` / \`*_windows-x64.msi\` | Windows 用インストーラー / Windows installers |
           | \`*_macos-arm64.dmg\` / \`*_macos-x64.dmg\` | macOS 用（Apple Silicon / Intel） |
-          | \`*.AppImage\` / \`*.deb\` / \`*.rpm\` | Linux 用 |
+          | \`*_linux-x64.AppImage\` / \`.deb\` / \`.rpm\` | Linux 用 |
           | \`dependency-auto-update-tool-*.jar\` | コマンドライン版（JDK 25 以降） |
 
           コード署名はしていません。Windows では SmartScreen、macOS では Gatekeeper の警告が出ることがあります。
