@@ -1,0 +1,277 @@
+# リリースの自動化。
+#
+# - タグ（v0.1.0 など。GUI の版番号と一致させる）を push すると、テスト → 各 OS でビルド →
+#   チェックサムと出どころの証明（artifact attestation）→ Release の下書き作成 まで行う。
+#   下書きの内容を確認してから、GitHub の画面で公開する。
+# - 手動実行（Actions タブの Run workflow）では Release を作らず、ビルドしたファイルを
+#   この実行のアーティファクトとして 7 日間残す（ビルドの試験用）。
+#
+# 供給網攻撃への備えとして、使う Actions はコミットの SHA で固定し（コメントは対応する版）、
+# 権限はジョブごとに必要最小限だけ与える。秘密情報は GITHUB_TOKEN 以外使わない。
+
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check that the tag matches the GUI version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          cd software-update-checker
+          pkg=$(node -p "require('./package.json').version")
+          conf=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          cargo=$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/.*"(.*)"/\1/')
+          echo "tag=$tag package.json=$pkg tauri.conf.json=$conf Cargo.toml=$cargo"
+          if [ "$tag" != "$pkg" ] || [ "$tag" != "$conf" ] || [ "$tag" != "$cargo" ]; then
+            echo "::error::The tag v$tag does not match the version in package.json, tauri.conf.json and Cargo.toml"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: software-update-checker/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: software-update-checker/src-tauri
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Test the GUI (frontend type check and Rust tests)
+        working-directory: software-update-checker
+        run: |
+          npm ci
+          npm run check
+          cargo test --locked --manifest-path src-tauri/Cargo.toml
+
+      - name: Test the CLI
+        run: mvn -B verify
+
+  build-gui:
+    name: Build GUI (${{ matrix.platform }})
+    needs: test
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            platform: macos-arm64
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            platform: macos-x64
+            target: x86_64-apple-darwin
+          # glibc の古い版でも動くよう、古めの Ubuntu でビルドする
+          - os: ubuntu-22.04
+            platform: linux-x64
+            target: x86_64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev file
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: software-update-checker/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: software-update-checker/src-tauri
+          key: ${{ matrix.target }}
+
+      - name: Build
+        working-directory: software-update-checker
+        run: |
+          npm ci
+          npm run tauri build -- --target ${{ matrix.target }}
+
+      - name: Collect the files to release
+        shell: bash
+        working-directory: software-update-checker
+        run: |
+          version=$(node -p "require('./package.json').version")
+          release="src-tauri/target/${{ matrix.target }}/release"
+          out="${GITHUB_WORKSPACE}/out"
+          mkdir -p "$out"
+          case "${{ matrix.platform }}" in
+            windows-*)
+              # インストーラーなしで使える実行ファイル単体と、インストーラー（NSIS / MSI）
+              cp "$release/software-update-checker.exe" "$out/software-update-checker_${version}_${{ matrix.platform }}.exe"
+              cp "$release"/bundle/nsis/*.exe "$release"/bundle/msi/*.msi "$out/"
+              ;;
+            macos-*)
+              for f in "$release"/bundle/dmg/*.dmg; do
+                cp "$f" "$out/$(basename "${f%.dmg}")_${{ matrix.platform }}.dmg"
+              done
+              ;;
+            linux-*)
+              cp "$release"/bundle/appimage/*.AppImage "$release"/bundle/deb/*.deb "$release"/bundle/rpm/*.rpm "$out/"
+              ;;
+          esac
+          ls -la "$out"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-gui-${{ matrix.platform }}
+          path: out/*
+          if-no-files-found: error
+          retention-days: 7
+
+  build-cli:
+    name: Build CLI
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Build
+        run: |
+          mvn -B -DskipTests package
+          mkdir -p out
+          cp target/dependency-auto-update-tool-*.jar out/
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-cli
+          path: out/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Create draft release
+    needs: [build-gui, build-cli]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Release の作成
+      id-token: write # 出どころの証明の署名（Sigstore）
+      attestations: write # 出どころの証明の保存
+      artifact-metadata: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: |
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Attest build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/*
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          cat > notes.md <<EOF
+          ## ダウンロード / Downloads
+
+          | ファイル | 内容 |
+          |---|---|
+          | \`software-update-checker_*_windows-x64.exe\` | Windows 用。インストール不要の実行ファイル単体 |
+          | \`Software Update Checker_*_x64-setup.exe\` / \`*.msi\` | Windows 用インストーラー |
+          | \`*_macos-arm64.dmg\` / \`*_macos-x64.dmg\` | macOS 用（Apple Silicon / Intel） |
+          | \`*.AppImage\` / \`*.deb\` / \`*.rpm\` | Linux 用 |
+          | \`dependency-auto-update-tool-*.jar\` | コマンドライン版（JDK 25 以降） |
+
+          コード署名はしていません。Windows では SmartScreen、macOS では Gatekeeper の警告が出ることがあります。
+          These binaries are not code-signed yet; Windows SmartScreen / macOS Gatekeeper may warn on first launch.
+
+          ## 改ざんされていないことの確認 / Verifying downloads
+
+          チェックサム / Checksums:
+
+          \`\`\`bash
+          sha256sum -c SHA256SUMS.txt --ignore-missing
+          \`\`\`
+
+          Windows（PowerShell）では、表示された値を SHA256SUMS.txt と照合します / On Windows (PowerShell), compare with SHA256SUMS.txt:
+
+          \`\`\`powershell
+          Get-FileHash <file> -Algorithm SHA256
+          \`\`\`
+
+          出どころの証明（このリポジトリの GitHub Actions が、このタグのコミットからビルドしたこと）/
+          Build provenance (built by this repository's GitHub Actions from the tagged commit):
+
+          \`\`\`bash
+          gh attestation verify <file> --repo ${REPO}
+          \`\`\`
+          EOF
+          gh release create "$TAG" dist/* \
+            --repo "$REPO" \
+            --draft \
+            --verify-tag \
+            --title "$TAG" \
+            --notes-file notes.md \
+            --generate-notes

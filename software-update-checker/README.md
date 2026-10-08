@@ -233,10 +233,56 @@ npm run notices
 
 画面確認用の模擬データに含まれる外部データの出典は、[`src/lib/fixtures/README.md`](src/lib/fixtures/README.md) にあります。
 
+## リリース
+
+[`.github/workflows/release.yml`](../.github/workflows/release.yml) の GitHub Actions で、ビルドから Release の下書き作成までを自動で行います。
+
+1. 版番号を `package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` の 3 か所でそろえて更新し、コミットする（第三者ライセンスは `npm run notices` で作り直す）。
+2. 同じ版番号のタグを付けて push する。
+
+   ```bash
+   git tag v0.1.0
+   ```
+
+   ```bash
+   git push origin v0.1.0
+   ```
+
+3. Actions が次の順で処理する。
+   1. テスト（フロントの型チェック、Rust のテスト、CLI のテスト）。タグと版番号が食い違っていれば止める。
+   2. Windows（x64）・macOS（Apple Silicon / Intel）・Linux（x64）でビルド。CLI の jar もビルド。
+   3. 全ファイルの SHA-256 を `SHA256SUMS.txt` にまとめ、出どころの証明（[artifact attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations)）を付ける。
+   4. Release の**下書き**を作る。
+4. GitHub の Releases で下書きの内容を確認して公開する。
+
+Actions タブから手動実行（Run workflow）した場合は、Release を作らずにビルドだけ行い、成果物をその実行のアーティファクトとして 7 日間残します。
+
+ワークフローで使う Actions はコミットの SHA で固定し、権限はジョブごとに最小限にしています。更新するときは、新しい版のタグに対応する SHA に書き換えてください。
+
+### ダウンロードしたファイルの確認（利用者向け）
+
+チェックサム（`SHA256SUMS.txt` と同じ場所で実行）:
+
+```bash
+sha256sum -c SHA256SUMS.txt --ignore-missing
+```
+
+Windows の PowerShell では、表示された値を `SHA256SUMS.txt` と照合します。
+
+```powershell
+Get-FileHash software-update-checker_0.1.0_windows-x64.exe -Algorithm SHA256
+```
+
+出どころの証明（このリポジトリの GitHub Actions が、タグのコミットからビルドしたファイルであること）は、GitHub CLI で確認できます。
+
+```bash
+gh attestation verify software-update-checker_0.1.0_windows-x64.exe --repo tamacat/dependency-auto-update-tool
+```
+
 ## 未対応・今後の課題
 
 - **自動更新**: 未設定。`tauri-plugin-updater` を追加し、`tauri signer generate` で作った署名鍵の公開鍵と、更新情報の配信 URL（GitHub Releases など）を `tauri.conf.json` に設定する必要があります。秘密鍵はリポジトリに入れず CI のシークレットで管理します。
-- **配布用の署名**: Windows のコード署名、macOS の公証（Apple Developer Program）。
+- **配布用の署名**: Windows のコード署名（SignPath Foundation への申請を検討）、macOS の公証（Apple Developer Program）。
 - HTML レポート、前回結果との差分、複数ファイルの横断表示。
 - Java 要件の判定は Maven（jar）のみ。npm の `engines` や PyPI の `requires_python` などは未対応。
 - pom.xml 直接読込での親 POM / BOM の解決（現状は「Maven で SBOM 生成」で代替）。
