@@ -12,7 +12,7 @@ policy you declare in `config/tool.properties` (see
 [Configuration](#configuration)); the tool ships no hardcoded branch list of
 its own. It was originally built for, and ships pre-configured for, its
 reference deployment: [`tamacat-httpd`](https://github.com/tamacat/tamacat-httpd)
-(branches `v1.6` -> JDK 8, `v2.0-tc11` -> JDK 25).
+(branches `v1.6` -> JDK 8, `v2.0` -> JDK 25).
 
 ## What it does, in order
 
@@ -82,7 +82,7 @@ reference values):
 
 ```
 jdkHome.v1.6=/opt/amazon-corretto-8
-jdkHome.v2.0-tc11=/opt/amazon-corretto-25
+jdkHome.v2.0=/opt/amazon-corretto-25
 ```
 
 **This file is deliberately not committed to git** (see `.gitignore`) -- a

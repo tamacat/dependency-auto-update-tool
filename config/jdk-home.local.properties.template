@@ -14,7 +14,7 @@
 # tool's own reference deployment, tamacat-httpd, declares two branches with
 # different JDK baselines, verified against the live repository:
 #   v1.6        -> JDK 8
-#   v2.0-tc11   -> JDK 25
+#   v2.0        -> JDK 25
 #
 # The tool validates that whatever path you set here actually reports that
 # branch's expected major version (via <path>/bin/java -version) before it
@@ -23,4 +23,4 @@
 # either branch.
 
 jdkHome.v1.6=/path/to/your/jdk-8
-jdkHome.v2.0-tc11=/path/to/your/jdk-25
+jdkHome.v2.0=/path/to/your/jdk-25
