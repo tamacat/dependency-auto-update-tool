@@ -44,12 +44,84 @@ fn working_pom(pom_path: &Path) -> Result<PathBuf, String> {
     if pom_path.file_name().and_then(|n| n.to_str()) == Some("pom.xml") {
         return Ok(pom_path.to_path_buf());
     }
-    let millis = crate::activity::now_millis();
-    let dir = std::env::temp_dir().join(format!("software-update-checker-mvn-{}-{millis}", std::process::id()));
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let dir = private_temp_dir(&std::env::temp_dir())
+        .map_err(|e| tr!("一時フォルダを作れません: {e}", "Cannot create a temporary directory: {e}"))?;
     let copy = dir.join("pom.xml");
     std::fs::copy(pom_path, &copy).map_err(|e| tr!("{} をコピーできません: {e}", "Cannot copy {}: {e}", pom_path.display()))?;
     Ok(copy)
+}
+
+/// Maven を実行する一時フォルダを作る。
+///
+/// Maven は実行フォルダの `.mvn/`（拡張機能や設定）を読むため、他のユーザーが同名のフォルダを
+/// 先に作って中身を仕込めると、そのコードが実行されうる（Linux / macOS の共有 /tmp）。
+/// そのため名前は推測できないものにし、既に存在するフォルダは決して使わず（新規作成のみ）、
+/// Unix では本人だけが読み書きできる権限（700）で作る。
+fn private_temp_dir(base: &Path) -> std::io::Result<PathBuf> {
+    use std::hash::{BuildHasher, Hasher};
+    let mut last_error = None;
+    for attempt in 0..8u32 {
+        // RandomState は OS の乱数で初期化されるので、出力は外から推測できない
+        let mut h = std::collections::hash_map::RandomState::new().build_hasher();
+        h.write_u32(std::process::id());
+        h.write_i64(crate::activity::now_millis());
+        h.write_u32(attempt);
+        let dir = base.join(format!("software-update-checker-mvn-{:016x}", h.finish()));
+        // 権限の指定は Unix だけなので、それ以外では mut が使われない
+        #[cfg_attr(not(unix), allow(unused_mut))]
+        let mut builder = std::fs::DirBuilder::new();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            builder.mode(0o700);
+        }
+        match builder.create(&dir) {
+            Ok(()) => return Ok(dir),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => last_error = Some(e),
+            Err(e) => return Err(e),
+        }
+    }
+    Err(last_error.unwrap_or_else(|| std::io::Error::other("temporary directory")))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn temp_dirs_are_new_unpredictable_and_private() {
+        let base = std::env::temp_dir().join(format!("suc-mvn-test-{}", std::process::id()));
+        std::fs::create_dir_all(&base).unwrap();
+        let a = private_temp_dir(&base).unwrap();
+        let b = private_temp_dir(&base).unwrap();
+        assert_ne!(a, b, "毎回別のフォルダを作る");
+        let name = a.file_name().unwrap().to_string_lossy().into_owned();
+        assert!(name.starts_with("software-update-checker-mvn-") && name.len() == "software-update-checker-mvn-".len() + 16);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(std::fs::metadata(&a).unwrap().permissions().mode() & 0o777, 0o700);
+        }
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn pom_xml_is_used_in_place_and_other_poms_are_copied() {
+        let base = std::env::temp_dir().join(format!("suc-mvn-copy-{}", std::process::id()));
+        std::fs::create_dir_all(&base).unwrap();
+        let project = base.join("pom.xml");
+        std::fs::write(&project, "<project/>").unwrap();
+        assert_eq!(working_pom(&project).unwrap(), project);
+
+        let published = base.join("app-1.0.pom");
+        std::fs::write(&published, "<project/>").unwrap();
+        let copy = working_pom(&published).unwrap();
+        assert_eq!(copy.file_name().unwrap(), "pom.xml");
+        assert_ne!(copy.parent().unwrap(), base.as_path(), "元のフォルダでは実行しない");
+        assert_eq!(std::fs::read_to_string(&copy).unwrap(), "<project/>");
+        std::fs::remove_dir_all(copy.parent().unwrap()).unwrap();
+        std::fs::remove_dir_all(base).unwrap();
+    }
 }
 
 fn run_maven(original_pom: &Path) -> Result<PathBuf, String> {

@@ -8,6 +8,8 @@
 #
 # 供給網攻撃への備えとして、使う Actions はコミットの SHA で固定し（コメントは対応する版）、
 # 権限はジョブごとに必要最小限だけ与える。秘密情報は GITHUB_TOKEN 以外使わない。
+# 配布物を作るワークフローなので、npm・cargo・Maven のキャッシュは使わない（キャッシュ汚染の
+# 経路を作らないため。毎回ゼロからビルドする）。run の中では ${{ }} を直接使わず環境変数で渡す。
 
 name: Release
 
@@ -30,7 +32,7 @@ jobs:
     name: Test
     runs-on: windows-latest
     permissions:
-      contents: read
+      contents: read # リポジトリの取得だけ
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -54,22 +56,16 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: software-update-checker/package-lock.json
+          package-manager-cache: false
 
       - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
         with:
           toolchain: stable
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          workspaces: software-update-checker/src-tauri
-
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: 25
-          cache: maven
 
       - name: Test the GUI (frontend type check and Rust tests)
         working-directory: software-update-checker
@@ -86,7 +82,7 @@ jobs:
     needs: test
     runs-on: ${{ matrix.os }}
     permissions:
-      contents: read
+      contents: read # リポジトリの取得だけ
     strategy:
       fail-fast: false
       matrix:
@@ -118,35 +114,35 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: software-update-checker/package-lock.json
+          package-manager-cache: false
 
       - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
         with:
           toolchain: stable
           targets: ${{ matrix.target }}
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          workspaces: software-update-checker/src-tauri
-          key: ${{ matrix.target }}
-
       - name: Build
         working-directory: software-update-checker
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
           npm ci
-          npm run tauri build -- --target ${{ matrix.target }}
+          npm run tauri build -- --target "$TARGET"
 
       - name: Collect the files to release
         shell: bash
         working-directory: software-update-checker
+        env:
+          TARGET: ${{ matrix.target }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
           # Release の添付ファイル名は空白なしの「製品名_版_OS-アーキテクチャ」にそろえる
           # （空白は GitHub で "." に置き換えられ、SHA256SUMS.txt の名前と食い違うため）
           version=$(node -p "require('./package.json').version")
-          release="src-tauri/target/${{ matrix.target }}/release"
+          release="src-tauri/target/${TARGET}/release"
           out="${GITHUB_WORKSPACE}/out"
-          name="software-update-checker_${version}_${{ matrix.platform }}"
+          name="software-update-checker_${version}_${PLATFORM}"
           mkdir -p "$out"
           one() {
             # 指定したパターンに一致するファイルがちょうど 1 つであることを確かめてコピーする
@@ -157,7 +153,7 @@ jobs:
             fi
             cp "${files[0]}" "$out/$2"
           }
-          case "${{ matrix.platform }}" in
+          case "$PLATFORM" in
             windows-*)
               # インストーラーなしで使える実行ファイル単体と、インストーラー（NSIS / MSI）
               one "$release/software-update-checker.exe" "${name}.exe"
@@ -187,7 +183,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # リポジトリの取得だけ
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -197,7 +193,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 25
-          cache: maven
 
       - name: Build
         run: |
@@ -221,7 +216,7 @@ jobs:
       contents: write # Release の作成
       id-token: write # 出どころの証明の署名（Sigstore）
       attestations: write # 出どころの証明の保存
-      artifact-metadata: write
+      artifact-metadata: write # 出どころの証明の保存先の記録
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:

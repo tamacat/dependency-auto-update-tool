@@ -17,6 +17,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
 // ---- Rust
+// cargo-about はネットワークに出ずに動かすので、他の OS 向けにしか使わないクレートも含めて先に取得しておく
+execFileSync('cargo', ['fetch', '--locked', '--manifest-path', 'src-tauri/Cargo.toml'], { cwd: root, stdio: 'inherit' });
 const rust = execFileSync(
   'cargo',
   // --offline: Cargo.lock のとおりに処理し、ネットワークに出ない。--fail: ライセンスを判定できないクレートがあれば失敗させる
