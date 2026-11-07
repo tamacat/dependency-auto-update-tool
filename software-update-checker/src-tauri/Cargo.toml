@@ -1,6 +1,6 @@
 [package]
 name = "software-update-checker"
-version = "0.1.1"
+version = "0.2.0"
 description = "SBOM / pom.xml から依存ソフトウェアを一覧化し、最新版・脆弱性・EOL を確認する GUI ツール"
 edition = "2021"
 rust-version = "1.82"
