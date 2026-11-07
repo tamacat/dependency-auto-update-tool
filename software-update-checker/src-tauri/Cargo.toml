@@ -5,7 +5,7 @@ members = ["core", "cli"]
 
 # 版番号はここだけで管理する（package.json・tauri.conf.json と同じ値にそろえる）
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.82"
 license = "Apache-2.0"
