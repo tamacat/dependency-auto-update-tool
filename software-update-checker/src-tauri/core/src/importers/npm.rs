@@ -163,6 +163,30 @@ fn split_scope(name: &str) -> (Option<&str>, &str) {
     }
 }
 
+/// npm の部品（ID は `npm:名前@版`）。版がレジストリの版でなければ照会しない印を付ける。
+pub(super) fn npm_component(name: &str, version: Option<&str>) -> Component {
+    let version = version.filter(|v| registry_version(v));
+    let (scope, short) = split_scope(name);
+    let id = match version {
+        Some(v) => format!("npm:{name}@{v}"),
+        None => format!("npm:{name}"),
+    };
+    let mut c = Component::new(id, Ecosystem::Npm, short);
+    c.group = scope.map(str::to_string);
+    c.version = version.map(str::to_string);
+    c.purl = version.map(|v| Purl::build("npm", scope, short, Some(v)).to_string_canonical(true));
+    c
+}
+
+/// package.json の依存の名前（実行時に使うもの、開発用）。読めなければ `None`。
+pub(super) fn package_json_roots(content: &str) -> Option<(Vec<String>, Vec<String>)> {
+    let pj: Value = serde_json::from_str(content).ok()?;
+    let mut prod = keys(&pj, "dependencies");
+    prod.extend(keys(&pj, "optionalDependencies"));
+    prod.extend(keys(&pj, "peerDependencies"));
+    Some((prod, keys(&pj, "devDependencies")))
+}
+
 /// package-lock.json の中身（と、あれば同じ場所の package.json）から取り込む。
 fn parse(content: &str, package_json: Option<&str>) -> Result<ImportResult, String> {
     let json: Value =

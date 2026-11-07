@@ -4,15 +4,22 @@
 //! 新しい形式（Gradle、Cargo.lock など）に対応するときは、
 //! このディレクトリにモジュールを追加して `registry` に足すだけでよい。
 
+mod cargo;
 mod cyclonedx;
+mod golang;
+mod gradle;
 pub mod maven;
 mod npm;
+mod pnpm;
 mod pom;
 mod python;
 mod spdx;
+mod yaml;
+mod yarn;
 
 use crate::model::{Component, Ecosystem, ImportResult};
 use crate::purl::Purl;
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
 
 pub trait Importer: Send + Sync {
@@ -33,6 +40,11 @@ pub fn registry() -> Vec<Box<dyn Importer>> {
         Box::new(python::RequirementsImporter),
         Box::new(python::PoetryLockImporter),
         Box::new(python::UvLockImporter),
+        Box::new(pnpm::PnpmLockImporter),
+        Box::new(yarn::YarnLockImporter),
+        Box::new(cargo::CargoLockImporter),
+        Box::new(golang::GoModImporter),
+        Box::new(gradle::GradleLockImporter),
     ]
 }
 
@@ -47,8 +59,8 @@ pub fn import_file(path: &Path) -> Result<ImportResult, String> {
         }
     }
     Err(tr!(
-        "{} は対応していない形式です（対応形式: pom.xml / CycloneDX JSON・XML / SPDX JSON / package-lock.json / requirements.txt / poetry.lock / uv.lock）",
-        "{} is not a supported format (supported: pom.xml / CycloneDX JSON, XML / SPDX JSON / package-lock.json / requirements.txt / poetry.lock / uv.lock)",
+        "{} は対応していない形式です（対応形式: pom.xml / CycloneDX JSON・XML / SPDX JSON / package-lock.json / pnpm-lock.yaml / yarn.lock / requirements.txt / poetry.lock / uv.lock / Cargo.lock / go.mod / gradle.lockfile）",
+        "{} is not a supported format (supported: pom.xml / CycloneDX JSON, XML / SPDX JSON / package-lock.json / pnpm-lock.yaml / yarn.lock / requirements.txt / poetry.lock / uv.lock / Cargo.lock / go.mod / gradle.lockfile)",
         path.display()
     ))
 }
@@ -64,6 +76,27 @@ pub(crate) fn apply_purl(component: &mut Component, purl: &str) {
             component.version = p.version.clone();
         }
         component.purl = Some(purl.to_string());
+    }
+}
+
+/// ルート（自分たちのプロジェクト）の依存から、直接依存と開発用を決める。
+///
+/// `prod` は実行時の直接依存、`dev` は開発用の直接依存（部品 ID）。直接依存は `direct = true`、
+/// 実行時の依存から辿れないものは範囲を `dev` にする。
+pub(crate) fn apply_roots(components: &mut [Component], prod: &BTreeSet<String>, dev: &BTreeSet<String>) {
+    let edges: HashMap<String, Vec<String>> = components.iter().map(|c| (c.id.clone(), c.dependencies.clone())).collect();
+    let mut reachable: HashSet<String> = HashSet::new();
+    let mut stack: Vec<String> = prod.iter().cloned().collect();
+    while let Some(id) = stack.pop() {
+        if reachable.insert(id.clone()) {
+            stack.extend(edges.get(&id).into_iter().flatten().cloned());
+        }
+    }
+    for c in components.iter_mut() {
+        c.direct = Some(prod.contains(&c.id) || dev.contains(&c.id));
+        if !reachable.contains(&c.id) && c.scope.is_none() {
+            c.scope = Some("dev".into());
+        }
     }
 }
 

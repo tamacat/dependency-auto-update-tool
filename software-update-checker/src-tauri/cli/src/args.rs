@@ -10,7 +10,8 @@ Checks the dependencies in <input> for known vulnerabilities, end of life and
 deprecation, and exits with 1 when a finding matches --fail-on.
 
 <input>   pom.xml, CycloneDX (JSON/XML), SPDX JSON, package-lock.json,
-          requirements.txt, poetry.lock or uv.lock
+          pnpm-lock.yaml, yarn.lock, requirements.txt, poetry.lock, uv.lock,
+          Cargo.lock, go.mod or gradle.lockfile
 
 Options:
   --format <text|json|sarif>   Report format (default: text)
