@@ -1,6 +1,6 @@
 # リリースの自動化。
 #
-# - タグ（v0.1.0 など。GUI の版番号と一致させる）を push すると、テスト → 各 OS でビルド →
+# - タグ（v0.1.0 など。GUI の版番号と一致させる）を push すると、版番号の確認とテスト（test.yml）→ 各 OS でビルド →
 #   チェックサムと出どころの証明（artifact attestation）→ Release の下書き作成 まで行う。
 #   下書きの内容を確認してから、GitHub の画面で公開する。
 # - 手動実行（Actions タブの Run workflow）では Release を作らず、ビルドしたファイルを
@@ -28,9 +28,10 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
-    name: Test
-    runs-on: windows-latest
+  # タグと GUI の版番号が一致するか（手動実行では確認しない）
+  version:
+    name: Check version
+    runs-on: ubuntu-latest
     permissions:
       contents: read # リポジトリの取得だけ
     steps:
@@ -53,33 +54,16 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          package-manager-cache: false
-
-      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
-        with:
-          toolchain: stable
-
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
-        with:
-          distribution: temurin
-          java-version: 25
-
-      - name: Test the GUI (frontend type check and Rust tests)
-        working-directory: software-update-checker
-        run: |
-          npm ci
-          npm run check
-          cargo test --locked --manifest-path src-tauri/Cargo.toml
-
-      - name: Test the CLI
-        run: mvn -B verify
+  # テストの手順は test.yml にだけ書き、プルリクエストと同じものを使う
+  test:
+    name: Test
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read # リポジトリの取得だけ
 
   build-gui:
     name: Build GUI (${{ matrix.platform }})
-    needs: test
+    needs: [version, test]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read # リポジトリの取得だけ
@@ -180,7 +164,7 @@ jobs:
 
   build-cli:
     name: Build CLI
-    needs: test
+    needs: [version, test]
     runs-on: ubuntu-latest
     permissions:
       contents: read # リポジトリの取得だけ
