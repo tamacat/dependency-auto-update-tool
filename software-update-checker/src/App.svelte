@@ -162,7 +162,7 @@
       multiple: false,
       directory: false,
       filters: [
-        { name: 'pom.xml / SBOM / lock', extensions: ['xml', 'json', 'pom', 'lock', 'txt'] },
+        { name: 'pom.xml / SBOM / lock', extensions: ['xml', 'json', 'pom', 'lock', 'txt', 'yaml', 'mod', 'lockfile'] },
         { name: t('dialog.allFiles'), extensions: ['*'] },
       ],
     });
