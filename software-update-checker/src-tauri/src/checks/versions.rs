@@ -39,13 +39,8 @@ struct VersionKey {
     version: String,
 }
 
-#[derive(Deserialize)]
-struct VersionResponse {
-    #[serde(default)]
-    licenses: Vec<String>,
-}
-
-fn url(segments: &[&str]) -> String {
+/// deps.dev API の URL（各部分はパーセントエンコードする）。
+pub(super) fn url(segments: &[&str]) -> String {
     let mut u = reqwest::Url::parse(BASE).expect("固定 URL");
     u.path_segments_mut().expect("http URL").pop_if_empty().extend(segments);
     u.to_string()
@@ -59,16 +54,6 @@ async fn fetch_package(http: &Http, system: &str, name: &str, opts: &CheckOption
         _ if res.is_success() => serde_json::from_str(&res.body).map(Some).map_err(|e| tr!("deps.dev の応答を解釈できません: {e}", "Cannot parse the deps.dev response: {e}")),
         s => Err(format!("deps.dev: HTTP {s}")),
     }
-}
-
-async fn fetch_licenses(http: &Http, system: &str, name: &str, ver: &str, opts: &CheckOptions) -> Vec<String> {
-    let Ok(res) = http.get(&url(&["v3", "systems", system, "packages", name, "versions", ver]), ttl(opts, 24 * 7)).await else {
-        return Vec::new();
-    };
-    if !res.is_success() {
-        return Vec::new();
-    }
-    serde_json::from_str::<VersionResponse>(&res.body).map(|r| r.licenses).unwrap_or_default()
 }
 
 fn max_version<'a>(iter: impl Iterator<Item = &'a VersionEntry>) -> Option<&'a VersionEntry> {
@@ -198,7 +183,6 @@ pub async fn check(
 
     let today = version::today_days();
     let mut done = 0;
-    let mut license_lookups: Vec<(String, &'static str, String, String)> = Vec::new();
     while let Some(joined) = tasks.join_next().await {
         done += 1;
         progress(CheckProgress { phase: "versions".into(), done, total });
@@ -209,40 +193,13 @@ pub async fn check(
             match &res {
                 Ok(Some(pkg)) => {
                     let current = has_concrete_version(c).then_some(c.version.as_deref()).flatten();
-                    let info = summarize(pkg, current, opts, today);
-                    if c.licenses.is_empty() && !info.current_not_found {
-                        if let Some(v) = current {
-                            license_lookups.push((c.id.clone(), system, name.clone(), v.to_string()));
-                        }
-                    }
-                    result.version = Some(info);
+                    result.version = Some(summarize(pkg, current, opts, today));
                 }
                 Ok(None) => result.errors.push(tr!(
                     "deps.dev にパッケージが見つかりません（非公開ライブラリの可能性）",
                     "Package not found on deps.dev (possibly a private library)"
                 )),
                 Err(e) => result.errors.push(tr!("最新版の取得に失敗: {e}", "Failed to fetch the latest version: {e}")),
-            }
-        }
-    }
-
-    // ライセンスが入力に無いものだけ補完する
-    let total = license_lookups.len();
-    let mut tasks = JoinSet::new();
-    for (id, system, name, ver) in license_lookups {
-        let (http, opts, semaphore) = (http.clone(), opts.clone(), semaphore.clone());
-        tasks.spawn(async move {
-            let _permit = semaphore.acquire_owned().await;
-            (id, fetch_licenses(&http, system, &name, &ver, &opts).await)
-        });
-    }
-    let mut done = 0;
-    while let Some(joined) = tasks.join_next().await {
-        done += 1;
-        progress(CheckProgress { phase: "licenses".into(), done, total });
-        if let Ok((id, licenses)) = joined {
-            if let Some(r) = results.get_mut(&id) {
-                r.licenses = licenses;
             }
         }
     }

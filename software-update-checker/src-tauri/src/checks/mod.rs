@@ -2,7 +2,9 @@
 //!
 //! チェックの種類ごとにモジュールを分けている。
 //! - [`versions`] — 最新バージョン・非推奨・最終リリース日（deps.dev）
-//! - [`vulns`] — 既知の脆弱性（OSV.dev）
+//! - [`supply`] — ライセンスの補完、OpenSSF Scorecard、来歴（deps.dev）
+//! - [`vulns`] — 既知の脆弱性と、すべてを直せる更新先（OSV.dev）
+//! - [`exploit`] — 悪用の確認（CISA KEV）と悪用されそうな度合い（EPSS）
 //! - [`eol`] — サポート終了と系列ごとの要件（endoflife.date）
 //! - [`java`] — jar から必要な Java を判定（Maven Central、詳細画面から個別に呼ぶ）
 //!
@@ -11,7 +13,9 @@
 
 mod cvss;
 mod eol;
+mod exploit;
 pub mod java;
+mod supply;
 mod versions;
 mod vulns;
 
@@ -76,9 +80,12 @@ pub async fn run_checks(
 
     if opts.source_enabled(sources::DEPS_DEV) {
         versions::check(http, &targets, opts, &mut results, progress.clone()).await;
+        supply::check(http, &targets, opts, &mut results, progress.clone()).await;
     }
+    // 修正版の提案に deps.dev の系列ごとの最新版も使うため、versions の後に行う
     if opts.source_enabled(sources::OSV) {
         vulns::check(http, &targets, opts, &mut results, progress.clone()).await;
+        exploit::check(http, opts, &mut results, progress.clone()).await;
     }
     if opts.source_enabled(sources::ENDOFLIFE) {
         eol::check(http, &targets, opts, &mut results, progress.clone()).await;

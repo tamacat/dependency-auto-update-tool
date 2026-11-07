@@ -3,14 +3,16 @@
 //!
 //! まず querybatch で各パッケージの脆弱性 ID だけを一括取得し、
 //! 重複を除いた ID ごとに詳細を取得する。
+//! 影響を受ける版の範囲から、すべてを直せる最小の更新先（[`FixAdvice`]）も求める。
 
 use super::cvss;
 use super::{canonical_purl, has_concrete_version, ttl, ProgressFn};
 use crate::http::Http;
-use crate::model::{CheckOptions, CheckProgress, CheckResult, Component, Severity, VulnInfo};
+use crate::model::{CheckOptions, CheckProgress, CheckResult, Component, FixAdvice, Severity, VersionInfo, VulnInfo};
 use crate::version;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 use tokio::sync::Semaphore;
@@ -63,6 +65,9 @@ struct OsvAffected {
     package: Option<OsvPackage>,
     #[serde(default)]
     ranges: Vec<OsvRange>,
+    /// 影響を受ける版の列挙
+    #[serde(default)]
+    versions: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -73,12 +78,144 @@ struct OsvPackage {
 
 #[derive(Deserialize)]
 struct OsvRange {
+    /// `ECOSYSTEM` / `SEMVER` / `GIT`
+    #[serde(rename = "type", default)]
+    kind: String,
     #[serde(default)]
     events: Vec<Value>,
 }
 
-/// OSV の脆弱性 1 件を、特定パッケージ向けの [`VulnInfo`] に変換する。
-fn to_vuln_info(v: &OsvVuln, package_name: &str, base_purl: &str) -> VulnInfo {
+/// 悪意あるパッケージの報告（OpenSSF Malicious Packages）の ID か。
+fn is_malicious_id(id: &str) -> bool {
+    id.starts_with("MAL-")
+}
+
+/// 1 件の脆弱性について、このパッケージのどの版が影響を受けるか。
+#[derive(Default, Debug)]
+struct AffectedSpec {
+    /// (introduced, 終端, 終端を含むか)。終端が `None` なら上限なし。
+    intervals: Vec<(String, Option<String>, bool)>,
+    /// 列挙された影響版
+    versions: Vec<String>,
+}
+
+impl AffectedSpec {
+    fn from_affected(entries: &[&OsvAffected]) -> Self {
+        let mut spec = Self::default();
+        for a in entries {
+            spec.versions.extend(a.versions.iter().cloned());
+            for r in a.ranges.iter().filter(|r| r.kind == "ECOSYSTEM" || r.kind == "SEMVER") {
+                // (種類, 版)。introduced の "0" は最小として並べる
+                let mut events: Vec<(&str, &str)> = r
+                    .events
+                    .iter()
+                    .filter_map(|e| e.as_object())
+                    .flat_map(|o| o.iter())
+                    .filter_map(|(k, v)| v.as_str().map(|v| (k.as_str(), v)))
+                    .collect();
+                events.sort_by(|a, b| match (a.1, b.1) {
+                    ("0", "0") => Ordering::Equal,
+                    ("0", _) => Ordering::Less,
+                    (_, "0") => Ordering::Greater,
+                    (x, y) => version::compare(x, y),
+                });
+                let mut start: Option<String> = None;
+                for (kind, v) in events {
+                    match kind {
+                        "introduced" => start = start.or(Some(v.to_string())),
+                        "fixed" | "last_affected" => {
+                            if let Some(s) = start.take() {
+                                spec.intervals.push((s, Some(v.to_string()), kind == "last_affected"));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                if let Some(s) = start {
+                    spec.intervals.push((s, None, false));
+                }
+            }
+        }
+        spec
+    }
+
+    /// 範囲や列挙から判定できるか（GIT の範囲しか無いものは判定できない）。
+    fn is_known(&self) -> bool {
+        !self.intervals.is_empty() || !self.versions.is_empty()
+    }
+
+    fn affects(&self, v: &str) -> bool {
+        self.versions.iter().any(|x| version::compare(x, v) == Ordering::Equal)
+            || self.intervals.iter().any(|(start, end, inclusive)| {
+                let after_start = start == "0" || version::compare(v, start) != Ordering::Less;
+                let before_end = match end {
+                    None => true,
+                    Some(e) => match version::compare(v, e) {
+                        Ordering::Less => true,
+                        Ordering::Equal => *inclusive,
+                        Ordering::Greater => false,
+                    },
+                };
+                after_start && before_end
+            })
+    }
+}
+
+/// すべてを直せる最小の更新先を求める（ネットワークを使わない純粋関数）。
+///
+/// 候補は、各脆弱性の修正版と、deps.dev で分かった系列ごとの最新版など。
+/// 現行より新しく、現行と同じ派生版（`-jre` など）のものだけを比べる。
+fn fix_advice(
+    current: &str,
+    vulns: &[(&VulnInfo, &AffectedSpec)],
+    version_info: Option<&VersionInfo>,
+    include_prerelease: bool,
+) -> FixAdvice {
+    let mut candidates: Vec<String> = vulns.iter().flat_map(|(v, _)| v.fixed_versions.iter().cloned()).collect();
+    if let Some(info) = version_info {
+        candidates.extend(
+            [&info.latest_in_minor, &info.latest_in_major, &info.latest].into_iter().flatten().cloned(),
+        );
+        candidates.extend(info.series.iter().map(|s| s.latest.clone()));
+    }
+    let allow_prerelease = include_prerelease || version::is_prerelease(current);
+    candidates.retain(|c| {
+        version::compare(c, current) == Ordering::Greater && (allow_prerelease || !version::is_prerelease(c))
+    });
+    let wanted = version::variant(current);
+    if candidates.iter().any(|c| version::variant(c) == wanted) {
+        candidates.retain(|c| version::variant(c) == wanted);
+    }
+    candidates.sort_by(|a, b| version::compare(a, b));
+    candidates.dedup_by(|a, b| version::compare(a, b) == Ordering::Equal);
+
+    let (fixable, unfixable): (Vec<_>, Vec<_>) = vulns
+        .iter()
+        .partition(|(_, spec)| spec.is_known() && candidates.iter().any(|c| !spec.affects(c)));
+    if fixable.is_empty() {
+        return FixAdvice { unfixed: unfixable.iter().map(|(v, _)| v.id.clone()).collect(), ..Default::default() };
+    }
+    let fixes_all = |c: &&String| fixable.iter().all(|(_, spec)| !spec.affects(c));
+    let current_series = version::series(current);
+    let current_major = version::major(current);
+    FixAdvice {
+        in_series: candidates
+            .iter()
+            .filter(|c| current_series.is_some() && version::series(c) == current_series)
+            .find(fixes_all)
+            .cloned(),
+        in_major: candidates
+            .iter()
+            .filter(|c| current_major.is_some() && version::major(c) == current_major)
+            .find(fixes_all)
+            .cloned(),
+        minimum: candidates.iter().find(fixes_all).cloned(),
+        unfixed: unfixable.iter().map(|(v, _)| v.id.clone()).collect(),
+    }
+}
+
+/// OSV の脆弱性 1 件を、特定パッケージ向けの [`VulnInfo`] と影響範囲に変換する。
+fn to_vuln_info(v: &OsvVuln, package_name: &str, base_purl: &str) -> (VulnInfo, AffectedSpec) {
     let score = v
         .severity
         .iter()
@@ -97,7 +234,10 @@ fn to_vuln_info(v: &OsvVuln, package_name: &str, base_purl: &str) -> VulnInfo {
             "LOW" => Severity::Low,
             _ => Severity::Unknown,
         });
+    let malicious = is_malicious_id(&v.id) || v.aliases.iter().any(|a| is_malicious_id(a));
     let severity = match (label, score) {
+        // 悪意あるパッケージは、入っているだけで最も深刻
+        _ if malicious => Severity::Critical,
         (Some(l), _) if l != Severity::Unknown => l,
         (_, Some(s)) => cvss::severity_from_score(s),
         _ => Severity::Unknown,
@@ -111,7 +251,7 @@ fn to_vuln_info(v: &OsvVuln, package_name: &str, base_purl: &str) -> VulnInfo {
         })
     };
     let relevant: Vec<&OsvAffected> = v.affected.iter().filter(matches).collect();
-    let source = if relevant.is_empty() { v.affected.iter().collect() } else { relevant };
+    let source: Vec<&OsvAffected> = if relevant.is_empty() { v.affected.iter().collect() } else { relevant };
     let mut fixed_versions: Vec<String> = source
         .iter()
         .flat_map(|a| a.ranges.iter())
@@ -124,7 +264,7 @@ fn to_vuln_info(v: &OsvVuln, package_name: &str, base_purl: &str) -> VulnInfo {
     let mut aliases = v.aliases.clone();
     aliases.sort_by_key(|a| !a.starts_with("CVE-"));
 
-    VulnInfo {
+    let info = VulnInfo {
         id: v.id.clone(),
         aliases,
         summary: v.summary.clone(),
@@ -133,7 +273,24 @@ fn to_vuln_info(v: &OsvVuln, package_name: &str, base_purl: &str) -> VulnInfo {
         fixed_versions,
         published: v.published.clone(),
         url: format!("https://osv.dev/vulnerability/{}", v.id),
-    }
+        malicious,
+        kev: None,
+        epss: None,
+    };
+    (info, AffectedSpec::from_affected(&source))
+}
+
+/// 一覧の並び順: 悪意あるパッケージ → 悪用確認済み（KEV）→ 深刻度 → EPSS → ID。
+pub(super) fn sort_vulns(list: &mut [VulnInfo]) {
+    let epss = |v: &VulnInfo| v.epss.as_ref().map_or(0.0, |e| e.score);
+    list.sort_by(|a, b| {
+        b.malicious
+            .cmp(&a.malicious)
+            .then_with(|| b.kev.is_some().cmp(&a.kev.is_some()))
+            .then_with(|| b.severity.cmp(&a.severity))
+            .then_with(|| epss(b).total_cmp(&epss(a)))
+            .then_with(|| a.id.cmp(&b.id))
+    });
 }
 
 pub async fn check(
@@ -215,23 +372,34 @@ pub async fn check(
         for c in &by_purl[&purl] {
             let Some(r) = results.get_mut(&c.id) else { continue };
             let package_name = c.package_name();
-            let mut infos: Vec<VulnInfo> = ids
+            let converted: Vec<(VulnInfo, AffectedSpec)> = ids
                 .iter()
                 .map(|id| match details.get(id) {
                     Some(v) => to_vuln_info(v, &package_name, &base_purl),
-                    None => VulnInfo {
-                        id: id.clone(),
-                        aliases: Vec::new(),
-                        summary: Some(tr!("（詳細を取得できませんでした）", "(Could not fetch the details)")),
-                        severity: Severity::Unknown,
-                        score: None,
-                        fixed_versions: Vec::new(),
-                        published: None,
-                        url: format!("https://osv.dev/vulnerability/{id}"),
-                    },
+                    None => (
+                        VulnInfo {
+                            id: id.clone(),
+                            aliases: Vec::new(),
+                            summary: Some(tr!("（詳細を取得できませんでした）", "(Could not fetch the details)")),
+                            severity: if is_malicious_id(id) { Severity::Critical } else { Severity::Unknown },
+                            score: None,
+                            fixed_versions: Vec::new(),
+                            published: None,
+                            url: format!("https://osv.dev/vulnerability/{id}"),
+                            malicious: is_malicious_id(id),
+                            kev: None,
+                            epss: None,
+                        },
+                        AffectedSpec::default(),
+                    ),
                 })
                 .collect();
-            infos.sort_by(|a, b| b.severity.cmp(&a.severity).then_with(|| a.id.cmp(&b.id)));
+            if let (false, Some(current)) = (converted.is_empty(), c.version.as_deref()) {
+                let pairs: Vec<(&VulnInfo, &AffectedSpec)> = converted.iter().map(|(v, s)| (v, s)).collect();
+                r.fix = Some(fix_advice(current, &pairs, r.version.as_ref(), opts.include_prerelease));
+            }
+            let mut infos: Vec<VulnInfo> = converted.into_iter().map(|(v, _)| v).collect();
+            sort_vulns(&mut infos);
             r.vulnerabilities = infos;
         }
     }
@@ -258,7 +426,7 @@ mod tests {
             ]
         }))
         .unwrap();
-        let info = to_vuln_info(
+        let (info, spec) = to_vuln_info(
             &v,
             "org.apache.tomcat.embed:tomcat-embed-core",
             "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core",
@@ -267,5 +435,111 @@ mod tests {
         assert_eq!(info.score, Some(3.1));
         assert_eq!(info.aliases[0], "CVE-2025-55668");
         assert_eq!(info.fixed_versions, vec!["10.1.42", "11.0.8"]);
+        assert!(!info.malicious);
+        // tomcat-catalina 側の範囲（〜9.0.106）は含めない
+        assert!(!spec.affects("9.0.50"));
+        assert!(spec.affects("10.1.41"));
+        assert!(!spec.affects("10.1.42"));
+        assert!(spec.affects("11.0.0-M1"));
+        assert!(!spec.affects("11.0.8"));
+    }
+
+    fn vuln(id: &str, fixed: &[&str]) -> VulnInfo {
+        VulnInfo {
+            id: id.into(),
+            aliases: Vec::new(),
+            summary: None,
+            severity: Severity::High,
+            score: None,
+            fixed_versions: fixed.iter().map(|s| s.to_string()).collect(),
+            published: None,
+            url: String::new(),
+            malicious: false,
+            kev: None,
+            epss: None,
+        }
+    }
+
+    fn spec(intervals: &[(&str, Option<&str>, bool)]) -> AffectedSpec {
+        AffectedSpec {
+            intervals: intervals.iter().map(|(s, e, i)| (s.to_string(), e.map(str::to_string), *i)).collect(),
+            versions: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn handles_last_affected_and_open_ranges() {
+        let v: OsvAffected = serde_json::from_value(json!({
+            "ranges": [ { "type": "ECOSYSTEM", "events": [ { "introduced": "2.0" }, { "last_affected": "2.3" } ] },
+                        { "type": "GIT", "events": [ { "introduced": "abc" } ] },
+                        { "type": "SEMVER", "events": [ { "introduced": "3.1.0" } ] } ],
+            "versions": [ "1.5" ]
+        }))
+        .unwrap();
+        let s = AffectedSpec::from_affected(&[&v]);
+        assert!(s.affects("1.5"));
+        assert!(!s.affects("1.6"));
+        assert!(s.affects("2.3"));
+        assert!(!s.affects("2.4"));
+        assert!(s.affects("3.9.9"));
+    }
+
+    #[test]
+    fn advises_smallest_version_fixing_everything() {
+        // 10.1 系は 10.1.42 と 10.1.45 で別々に修正、11.0 系は 11.0.8 で両方修正
+        let a = vuln("A", &["10.1.42", "11.0.8"]);
+        let b = vuln("B", &["10.1.45", "11.0.8"]);
+        let sa = spec(&[("10.1.0", Some("10.1.42"), false), ("11.0.0", Some("11.0.8"), false)]);
+        let sb = spec(&[("10.1.0", Some("10.1.45"), false), ("11.0.0", Some("11.0.8"), false)]);
+        let none = vuln("C", &[]);
+        let snone = spec(&[("0", None, false)]);
+        let advice = fix_advice("10.1.40", &[(&a, &sa), (&b, &sb), (&none, &snone)], None, false);
+        assert_eq!(advice.in_series.as_deref(), Some("10.1.45"));
+        assert_eq!(advice.minimum.as_deref(), Some("10.1.45"));
+        assert_eq!(advice.unfixed, vec!["C"]);
+
+        // 同じ系列に修正版が無い場合
+        let advice = fix_advice("9.0.1", &[(&a, &sa)], None, false);
+        assert_eq!(advice.in_series, None);
+        assert_eq!(advice.in_major, None);
+        assert_eq!(advice.minimum.as_deref(), Some("10.1.42"));
+
+        // 同じメジャーの別系列で直る場合（npm の 4.17 → 4.20 など）
+        let advice = fix_advice("10.0.5", &[(&a, &sa)], None, false);
+        assert_eq!(advice.in_series, None);
+        assert_eq!(advice.in_major.as_deref(), Some("10.1.42"));
+
+        // 直せるものが無い場合
+        let advice = fix_advice("1.0", &[(&none, &snone)], None, false);
+        assert_eq!(advice, FixAdvice { unfixed: vec!["C".into()], ..Default::default() });
+    }
+
+    #[test]
+    fn detects_malicious_packages() {
+        let v: OsvVuln = serde_json::from_value(json!({
+            "id": "MAL-2025-1234",
+            "summary": "Malicious code in evil-pkg (npm)",
+            "affected": [ { "package": { "name": "evil-pkg" }, "versions": ["1.0.0"] } ]
+        }))
+        .unwrap();
+        let (info, _) = to_vuln_info(&v, "evil-pkg", "pkg:npm/evil-pkg");
+        assert!(info.malicious);
+        assert_eq!(info.severity, Severity::Critical);
+    }
+
+    #[test]
+    fn sorts_malicious_then_kev_then_severity() {
+        let mut list = vec![vuln("GHSA-b", &[]), vuln("GHSA-a", &[]), vuln("MAL-1", &[])];
+        list[0].kev = Some(crate::model::KevInfo {
+            cve: "CVE-1".into(),
+            date_added: None,
+            due_date: None,
+            ransomware: false,
+            required_action: None,
+        });
+        list[2].malicious = true;
+        list[2].severity = Severity::Low;
+        sort_vulns(&mut list);
+        assert_eq!(list.iter().map(|v| v.id.as_str()).collect::<Vec<_>>(), vec!["MAL-1", "GHSA-b", "GHSA-a"]);
     }
 }

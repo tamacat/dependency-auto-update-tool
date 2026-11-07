@@ -20,6 +20,8 @@
   const cards = $derived<{ key: Filter; label: string; value: number; sub?: string; tone: string }[]>([
     { key: 'all', label: t('cards.all'), value: rows.length, tone: '' },
     { key: 'vulnerable', label: t('cards.vulnerable'), value: count(is.vulnerable), sub: t('cards.highOrAbove', { n: severe }), tone: 'danger' },
+    { key: 'exploited', label: t('cards.exploited'), value: count(is.exploited), sub: 'CISA KEV', tone: 'danger' },
+    { key: 'malicious', label: t('cards.malicious'), value: count(is.malicious), tone: 'danger' },
     { key: 'outdated', label: t('cards.outdated'), value: count(is.outdated), tone: 'warn' },
     { key: 'eol', label: t('cards.eol'), value: count(is.eol), tone: 'danger' },
     { key: 'stale', label: t('cards.stale'), value: count(is.stale), tone: 'warn' },

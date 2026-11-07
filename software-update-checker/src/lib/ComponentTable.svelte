@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { date, displayName, severityLabel, severityRank, updateLabel } from './format';
+  import { date, displayName, is, severityLabel, severityRank, updateLabel } from './format';
   import { t } from './i18n';
   import type { Row, UpdateKind } from './types';
 
@@ -23,7 +23,12 @@
       case 'update':
         return r.result?.version ? UPDATE_RANK[r.result.version.updateKind] : -1;
       case 'vulns':
-        return severityRank(r.maxSeverity) * 10_000 + (r.result?.vulnerabilities.length ?? 0);
+        return (
+          (is.malicious(r) ? 1_000_000 : 0) +
+          (is.exploited(r) ? 100_000 : 0) +
+          severityRank(r.maxSeverity) * 10_000 +
+          (r.result?.vulnerabilities.length ?? 0)
+        );
       case 'eol':
         return r.result?.eol?.status === 'eol' ? 2 : r.result?.eol ? 1 : 0;
       case 'lastRelease':
@@ -122,6 +127,8 @@
           </td>
           <td>
             {#if r.maxSeverity}
+              {#if is.malicious(r)}<span class="pill sev-critical" title={t('table.maliciousTitle')}>MAL</span>{/if}
+              {#if is.exploited(r)}<span class="pill sev-critical" title={t('table.kevTitle')}>KEV</span>{/if}
               <span class="pill sev-{r.maxSeverity}">{severityLabel(r.maxSeverity)}</span>
               <span class="muted">{t('common.count', { n: r.result?.vulnerabilities.length ?? 0 })}</span>
             {:else if r.result}
