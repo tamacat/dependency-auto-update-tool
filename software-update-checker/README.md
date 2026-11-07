@@ -31,6 +31,11 @@ CI 向けのコマンドライン版（`software-update-checker-cli`）もあり
 | requirements.txt / constraints.txt | pip-compile の出力ならあり | `==` で固定した版だけ脆弱性を照会する。`# via` の注記があれば依存関係と直接依存を判定。`-r` で読み込む別ファイルは辿らない |
 | poetry.lock | あり | 直接依存は同じ場所の pyproject.toml（`[project]`、`[tool.poetry]`、`[dependency-groups]`）から判定。main 以外のグループは範囲に表示 |
 | uv.lock | あり | ワークスペースの部品（editable / virtual）の依存を直接依存とする。実行時の依存から辿れないものは `dev` |
+| pnpm-lock.yaml | あり | lockfileVersion 5.x・6.x・9.x。`importers`（ワークスペースの各プロジェクト）の依存を直接依存とする。peer 依存の組み合わせだけが違う記録は 1 つにまとめる。pnpm 10 以降が先頭に書く pnpm 自身の記録は除く。実行時の依存から辿れないものは `dev` |
+| yarn.lock | あり | Yarn 1 と Yarn 2 以降の両方。Yarn 2 以降はワークスペースの記録から、Yarn 1 は同じ場所の package.json から直接依存を判定。開発用は package.json の devDependencies から |
+| Cargo.lock | あり | `source` の無い記録（ワークスペースの部品）の依存を直接依存とする。crates.io 以外（git など）は照会しない。dev-dependencies の区別は無い |
+| go.mod | 一覧のみ | `require` のうち `// indirect` の無いものを直接依存とする。`replace` を反映（ローカルのパスへの置き換えは照会しない）。依存関係のつながりは無い |
+| gradle.lockfile | 一覧のみ | Gradle の依存のロック。テスト用の構成だけで使うものは `test`。つながりと直接依存の区別は無い（CycloneDX Gradle プラグインの SBOM なら両方読める） |
 
 ファイルはウィンドウへのドラッグ＆ドロップか、「ファイルを開く」で読み込みます。ローカルのパスや git から入れたパッケージは一覧に出しますが、レジストリの版ではないため脆弱性は照会しません。一覧の「テスト・開発用を除く」で、`test` と `dev` の範囲を隠せます。
 
@@ -178,7 +183,7 @@ CSP 違反がないかは、模擬バックエンド入りのビルド（`npm ru
 
 ### 対応を広げるとき
 
-- **入力形式を足す**（Gradle、Cargo.lock、pnpm-lock.yaml など）: `src-tauri/core/src/importers/` に `Importer` トレイトの実装を追加し、`importers::registry()` に登録します。
+- **入力形式を足す**（composer.lock、Gemfile.lock、packages.lock.json など）: `src-tauri/core/src/importers/` に `Importer` トレイトの実装を追加し、`importers::registry()` に登録します。
 - **エコシステムを足す**: `model::Ecosystem` に値を追加し、purl の type と deps.dev の system 名との対応を書きます。最新版・脆弱性チェックは purl ベースなので、多くの場合それだけで動きます。
 - **チェックを足す**（ライセンス判定、社内リポジトリ照会など）: `src-tauri/core/src/checks/` にモジュールを追加し、`checks::run_checks` から呼びます。結果は `model::CheckResult` に項目を追加します。新しい通信先を使う場合は `sources.rs` への登録が必須です（登録しないと遮断されます）。
 
