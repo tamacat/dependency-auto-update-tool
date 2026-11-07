@@ -263,6 +263,8 @@ npm run notices
 
 [`.github/workflows/release.yml`](../.github/workflows/release.yml) の GitHub Actions で、ビルドから Release の下書き作成までを自動で行います。
 
+テスト（画面の型チェック、Rust のテスト、CLI の `mvn verify`）は [`.github/workflows/test.yml`](../.github/workflows/test.yml) にまとめてあり、プルリクエストと main への push のたびに実行されます。リリースのときも同じものを呼び出します。
+
 1. 版番号を `package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` の 3 か所でそろえて更新し、コミットする（第三者ライセンスは `npm run notices` で作り直す）。
 2. 同じ版番号のタグを付けて push する。
 

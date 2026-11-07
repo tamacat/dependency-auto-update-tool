@@ -1,0 +1,62 @@
+# テスト（GUI の型チェックと Rust のテスト、CLI の mvn verify）。
+#
+# - プルリクエストと main への push で実行する。
+# - リリース（release.yml）からも同じ内容を呼び出す（workflow_call）ので、テストの手順はここにだけ書く。
+#
+# release.yml と同じ方針で、使う Actions はコミットの SHA で固定し（コメントは対応する版）、
+# 権限はリポジトリの読み取りだけにする。リリースからも使うため、npm・cargo・Maven の
+# キャッシュは使わない（キャッシュ汚染の経路を作らないため）。
+# フォークからのプルリクエストでも安全なよう、pull_request_target は使わない。
+
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions: {}
+
+# 同じプルリクエストに続けて push したら、古い実行は取り消す（リリースからの呼び出しは取り消さない）
+concurrency:
+  group: test-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test
+    runs-on: windows-latest
+    permissions:
+      contents: read # リポジトリの取得だけ
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          toolchain: stable
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Test the GUI (frontend type check and Rust tests)
+        working-directory: software-update-checker
+        run: |
+          npm ci
+          npm run check
+          cargo test --locked --manifest-path src-tauri/Cargo.toml
+
+      - name: Test the CLI
+        run: mvn -B verify
