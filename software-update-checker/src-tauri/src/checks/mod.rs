@@ -8,6 +8,7 @@
 //! - [`eol`] — サポート終了と系列ごとの要件（endoflife.date）
 //! - [`java`] — jar から必要な Java を判定（Maven Central、詳細画面から個別に呼ぶ）
 //! - [`runtime`] — npm・PyPI が宣言する必要な Node.js・Python（詳細画面から個別に呼ぶ）
+//! - [`transitive`] — 推移的依存の脆弱性を直すには、どの直接依存を上げればよいか（詳細画面から個別に呼ぶ）
 //!
 //! 新しいチェック（ライセンス判定、社内リポジトリの照会など）を足すときは、
 //! モジュールを追加して [`run_checks`] から呼ぶ。
@@ -17,6 +18,7 @@ pub mod eol;
 mod exploit;
 pub mod java;
 pub mod runtime;
+pub mod transitive;
 mod supply;
 mod versions;
 mod vulns;

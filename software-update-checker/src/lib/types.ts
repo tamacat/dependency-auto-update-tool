@@ -61,6 +61,26 @@ export interface RuntimeRequirement {
   error: string | null;
 }
 
+/** 推移的依存の直し方（src-tauri/src/model.rs の TransitiveFix と対応） */
+export interface TransitiveFix {
+  /** 直接依存 → … → 対象 の経路（部品 ID） */
+  paths: string[][];
+  routes: RouteFix[];
+  /** 直接依存を上げずに固定する方法の案内 */
+  pinHint: string | null;
+}
+
+export interface RouteFix {
+  directId: string;
+  current: string | null;
+  /** この版以上に上げれば解消する（推定） */
+  fixVersion: string | null;
+  /** その版が引き込む対象の版。引き込まなくなるなら null */
+  targetVersion: string | null;
+  probes: number;
+  error: string | null;
+}
+
 export interface RuntimeStatus {
   runtime: 'java' | 'node' | 'python';
   version: string;

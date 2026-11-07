@@ -204,6 +204,10 @@ export function install() {
           return [];
         case 'runtime_status':
           return [];
+        // 模擬データの依存関係は浅いので、経路だけを返す
+        case 'transitive_fix':
+          await sleep(300);
+          return { paths: [], routes: [], pinHint: null };
         case 'knowledge_list':
           return {
             localPath: 'C:\\Users\\<user>\\AppData\\Roaming\\org.tamacat.software-update-checker\\java-requirements.json',

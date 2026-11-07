@@ -5,6 +5,15 @@
 import { prefs, type Locale } from './prefs.svelte';
 
 const ja = {
+  "detail.transitiveEstimate": "deps.dev が解決した依存関係からの推定です。実際の解決（Maven の dependencyManagement、npm の重複排除など）で変わることがあります。",
+  "detail.transitiveFixed": "{direct} を {version} 以上に上げると、{target} が {targetVersion} になり解消します",
+  "detail.transitiveLoading": "調べています…",
+  "detail.transitiveNoFix": "{direct} は新しい版でも解消しません",
+  "detail.transitiveNoPath": "直接依存からの経路が見つかりません",
+  "detail.transitiveNote": "直接依存の版ごとに、deps.dev と OSV へ問い合わせます（直接依存 1 つにつき最大 20 版）。",
+  "detail.transitiveRemoved": "{direct} を {version} 以上に上げると、{target} を使わなくなり解消します",
+  "detail.transitiveRun": "どの直接依存を上げればよいか調べる",
+  "detail.transitiveTitle": "推移的依存の直し方",
   "detail.javaTargetBad": "設定した Java {version} では動きません",
   "detail.requiredRuntime": "必要な {runtime}",
   "detail.runtimeLoading": "必要な実行環境を確認中…",
@@ -317,6 +326,15 @@ const ja = {
 export type MessageKey = keyof typeof ja;
 
 const en: Record<MessageKey, string> = {
+  "detail.transitiveEstimate": "Estimated from the dependency resolution on deps.dev. The actual resolution (Maven dependencyManagement, npm deduplication, etc.) may differ.",
+  "detail.transitiveFixed": "Upgrading {direct} to {version} or later brings {target} to {targetVersion}, which fixes it",
+  "detail.transitiveLoading": "Looking it up…",
+  "detail.transitiveNoFix": "No newer version of {direct} fixes it",
+  "detail.transitiveNoPath": "No path from a direct dependency was found",
+  "detail.transitiveNote": "Queries deps.dev and OSV for versions of each direct dependency (up to 20 versions each).",
+  "detail.transitiveRemoved": "Upgrading {direct} to {version} or later drops {target}, which fixes it",
+  "detail.transitiveRun": "Find which direct dependency to upgrade",
+  "detail.transitiveTitle": "Fixing a transitive dependency",
   "detail.javaTargetBad": "Does not run on the configured Java {version}",
   "detail.requiredRuntime": "Required {runtime}",
   "detail.runtimeLoading": "Checking runtime requirements…",
