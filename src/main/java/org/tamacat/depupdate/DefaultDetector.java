@@ -5,7 +5,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,6 +18,14 @@ import java.util.Set;
  * Real {@link Detector}: pre-flight (branch/JDK, then clean-working-tree --
  * ADR-7), then {@code pom.xml} parsing, BR-1a grouping, per-target
  * repository queries, and BR-1/BR-2 classification.
+ *
+ * <p>Security fixes: when a {@link VulnerabilityClient} is wired in and
+ * {@code securityFixPolicy} is not {@code OFF}, the current version of each
+ * target is looked up for known vulnerabilities. If it has some and the normal
+ * policy's best candidate does not fix them, the smallest series that fixes
+ * all of them within the security-fix ceiling is chosen instead (its newest
+ * fixing version). Security-fix candidates are returned first, so they are
+ * validated and committed before anything else.
  */
 public final class DefaultDetector implements Detector {
 
@@ -25,17 +35,27 @@ public final class DefaultDetector implements Detector {
 	private final JdkVersionChecker jdkVersionChecker;
 	private final VersionRepositoryClient repositoryClient;
 	private final GitClient gitClient;
+	/** {@code null} when vulnerabilities are not looked up. */
+	private final VulnerabilityClient vulnerabilityClient;
 
 	private volatile Path resolvedJdkHome;
 
+	/** A detector that does not look up vulnerabilities. */
 	public DefaultDetector(Path pomXmlPath, ToolConfiguration configuration, JdkHomeResolver jdkHomeResolver,
 			JdkVersionChecker jdkVersionChecker, VersionRepositoryClient repositoryClient, GitClient gitClient) {
+		this(pomXmlPath, configuration, jdkHomeResolver, jdkVersionChecker, repositoryClient, gitClient, null);
+	}
+
+	public DefaultDetector(Path pomXmlPath, ToolConfiguration configuration, JdkHomeResolver jdkHomeResolver,
+			JdkVersionChecker jdkVersionChecker, VersionRepositoryClient repositoryClient, GitClient gitClient,
+			VulnerabilityClient vulnerabilityClient) {
 		this.pomXmlPath = pomXmlPath;
 		this.configuration = configuration;
 		this.jdkHomeResolver = jdkHomeResolver;
 		this.jdkVersionChecker = jdkVersionChecker;
 		this.repositoryClient = repositoryClient;
 		this.gitClient = gitClient;
+		this.vulnerabilityClient = vulnerabilityClient;
 	}
 
 	/**
@@ -112,7 +132,21 @@ public final class DefaultDetector implements Detector {
 		for (VersionTarget target : targets) {
 			results.add(detectOne(target));
 		}
+		// Security fixes first (stable sort: the pom.xml order is kept otherwise), so a
+		// later commit failure, which stops the run, cannot keep them from being applied.
+		results.sort(Comparator.comparing((DetectionResult r) -> !isSecurityFix(r)));
 		return results;
+	}
+
+	private static boolean isSecurityFix(DetectionResult r) {
+		return r instanceof CandidateFound cf && cf.candidate().security().fixesSomething();
+	}
+
+	private static List<DependencyCoordinate> members(VersionTarget target) {
+		if (target instanceof DirectDependencyTarget ddt) {
+			return List.of(ddt.coordinate());
+		}
+		return ((PropertyIndirectedTarget) target).members();
 	}
 
 	private DetectionResult detectOne(VersionTarget target) {
@@ -132,20 +166,119 @@ public final class DefaultDetector implements Detector {
 			String current = target.currentVersion();
 			List<String> newer = available.stream()
 					.filter(v -> VersionComparator.INSTANCE.compare(v, current) > 0)
+					.sorted(VersionComparator.INSTANCE)
 					.toList();
 			List<String> inPolicy = newer.stream()
 					.filter(v -> policy.allows(VersionBumpClassifier.classify(current, v)))
 					.toList();
+			String normalBest = inPolicy.isEmpty() ? null : inPolicy.get(inPolicy.size() - 1);
 
-			if (inPolicy.isEmpty()) {
-				return new NoUpdateAvailable(target);
+			Optional<VersionRangePolicy> ceiling = configuration.securityFixPolicy().ceiling();
+			if (vulnerabilityClient != null && ceiling.isPresent()) {
+				return detectWithSecurity(target, current, newer, normalBest, policy, ceiling.get());
 			}
-			String candidateVersion = inPolicy.stream().max(VersionComparator.INSTANCE).orElseThrow();
-			VersionClassification classification = PreReleaseClassifier.classify(candidateVersion);
-			return new CandidateFound(new UpdateCandidate(target, current, candidateVersion, classification));
+			return normalResult(target, current, normalBest, SecurityStatus.NONE);
 		} catch (RepositoryQueryException e) {
 			return new QueryFailed(target, e.getMessage());
 		}
+	}
+
+	private static DetectionResult normalResult(VersionTarget target, String current, String candidate,
+			SecurityStatus security) {
+		if (candidate == null) {
+			return new NoUpdateAvailable(target, security);
+		}
+		return new CandidateFound(
+				new UpdateCandidate(target, current, candidate, PreReleaseClassifier.classify(candidate), security));
+	}
+
+	/**
+	 * Chooses the candidate when the current version may have known
+	 * vulnerabilities. A failed lookup is not fatal: the target is handled as
+	 * before and the reason is reported.
+	 */
+	private DetectionResult detectWithSecurity(VersionTarget target, String current, List<String> newer,
+			String normalBest, VersionRangePolicy policy, VersionRangePolicy ceiling) {
+		VersionRangePolicy allowed = ceiling.isAtLeastAsPermissiveAs(policy) ? ceiling : policy;
+		boolean currentIsPreRelease = PreReleaseClassifier.classify(current) == VersionClassification.PRE_RELEASE;
+		// Versions a security fix may move to: within the ceiling, and stable unless already on a pre-release
+		List<String> pool = newer.stream()
+				.filter(v -> allowed.allows(VersionBumpClassifier.classify(current, v)))
+				.filter(v -> currentIsPreRelease || PreReleaseClassifier.classify(v) == VersionClassification.STABLE)
+				.toList();
+		if (pool.size() > OsvVulnerabilityClient.MAX_BATCH - 2) {
+			pool = pool.subList(pool.size() - (OsvVulnerabilityClient.MAX_BATCH - 2), pool.size());
+		}
+		Set<String> versions = new LinkedHashSet<>();
+		versions.add(current);
+		if (normalBest != null) {
+			versions.add(normalBest);
+		}
+		versions.addAll(pool);
+
+		Map<String, Set<String>> byVersion;
+		try {
+			byVersion = lookUp(members(target), List.copyOf(versions));
+		} catch (RepositoryQueryException e) {
+			return normalResult(target, current, normalBest,
+					SecurityStatus.lookupFailed("vulnerability lookup failed: " + e.getMessage()));
+		}
+
+		Set<String> vulnerable = byVersion.getOrDefault(current, Set.of());
+		if (vulnerable.isEmpty()) {
+			return normalResult(target, current, normalBest, SecurityStatus.NONE);
+		}
+		// Of the current vulnerabilities, which ones a version still has
+		java.util.function.Function<String, Set<String>> remainingAt = v -> {
+			Set<String> r = new LinkedHashSet<>(byVersion.getOrDefault(v, Set.of()));
+			r.retainAll(vulnerable);
+			return r;
+		};
+
+		// 1. The normal candidate already fixes everything: keep it
+		if (normalBest != null && remainingAt.apply(normalBest).isEmpty()) {
+			return normalResult(target, current, normalBest,
+					new SecurityStatus(vulnerable, vulnerable, Set.of(), false, null));
+		}
+		// 2. The smallest version that fixes everything, then the newest fixing version in its series
+		Optional<String> smallestFix = pool.stream().filter(v -> remainingAt.apply(v).isEmpty()).findFirst();
+		if (smallestFix.isPresent()) {
+			String fix = smallestFix.get();
+			String chosen = pool.stream()
+					.filter(v -> VersionComparator.INSTANCE.compare(v, fix) >= 0)
+					.filter(v -> VersionBumpClassifier.classify(fix, v) == VersionBump.PATCH)
+					.filter(v -> remainingAt.apply(v).isEmpty())
+					.max(VersionComparator.INSTANCE).orElse(fix);
+			boolean escalated = !policy.allows(VersionBumpClassifier.classify(current, chosen));
+			return normalResult(target, current, chosen,
+					new SecurityStatus(vulnerable, vulnerable, Set.of(), escalated, null));
+		}
+		// 3. Nothing fixes everything: keep the normal candidate and say what remains
+		if (normalBest != null) {
+			Set<String> remaining = remainingAt.apply(normalBest);
+			Set<String> fixed = new LinkedHashSet<>(vulnerable);
+			fixed.removeAll(remaining);
+			return normalResult(target, current, normalBest,
+					new SecurityStatus(vulnerable, fixed, remaining, false, null));
+		}
+		return new NoUpdateAvailable(target, new SecurityStatus(vulnerable, Set.of(), vulnerable, false, null));
+	}
+
+	/** Vulnerability IDs per version, merged over all members of the target. */
+	private Map<String, Set<String>> lookUp(List<DependencyCoordinate> coordinates, List<String> versions)
+			throws RepositoryQueryException {
+		List<VulnerabilityClient.Query> queries = new ArrayList<>();
+		for (DependencyCoordinate c : coordinates) {
+			for (String v : versions) {
+				queries.add(new VulnerabilityClient.Query(c, v));
+			}
+		}
+		List<Set<String>> answers = vulnerabilityClient.vulnerabilities(queries);
+		Map<String, Set<String>> byVersion = new java.util.HashMap<>();
+		for (int i = 0; i < queries.size() && i < answers.size(); i++) {
+			byVersion.computeIfAbsent(queries.get(i).version(), k -> new LinkedHashSet<>()).addAll(answers.get(i));
+		}
+		return byVersion;
 	}
 
 	private List<String> intersectMemberVersions(PropertyIndirectedTarget target) throws RepositoryQueryException {

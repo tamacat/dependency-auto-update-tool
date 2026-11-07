@@ -30,7 +30,10 @@ reference deployment: [`tamacat-httpd`](https://github.com/tamacat/tamacat-httpd
    and `tomcat-embed-jasper`) into one atomic update target, queries a Maven
    repository (Maven Central by default) for each target's available
    versions, and filters by the configured version-range policy
-   (patch/minor/major, default patch-only).
+   (patch/minor/major, default patch-only). It also looks up known
+   vulnerabilities in the current versions (see
+   [Security fixes](#security-fixes)); a version that fixes them may go
+   beyond the normal policy, and security fixes are validated first.
 3. **Validation**: for each candidate, temporarily rewrites `pom.xml`, runs
    `mvn clean verify` under the branch's configured JDK, and classifies the
    result as safe (`GREEN`), genuinely incompatible (`INCOMPATIBLE`), or an
@@ -152,6 +155,42 @@ change. If you see a run fail pre-flight with `DIRTY_WORKING_TREE`, check
 `git status`/`git diff` first -- it is very likely an earlier run's
 unresolved commit failure, not a new problem.
 
+## Security fixes
+
+Unless `securityFixPolicy=OFF`, Detection asks [OSV.dev](https://osv.dev/)
+(`api.osv.dev`) which known vulnerabilities (GHSA, CVE, ...) affect each
+target's current version and its newer versions. Only Maven package URLs
+(groupId, artifactId, version) are sent -- one batched request per target,
+using the JDK's own HTTP client. For a `${property}` group, every member is
+checked.
+
+- **Not vulnerable**: nothing changes; the normal policy picks the candidate.
+- **Vulnerable, and the normal candidate fixes it**: same candidate, marked as
+  a security fix.
+- **Vulnerable, and the normal candidate does not fix it**: the smallest
+  series (major.minor) that fixes every known vulnerability is found, and its
+  newest fixing version becomes the candidate -- up to the bump size set by
+  `securityFixPolicy` (default `MINOR`; `PATCH_ONLY`, `MINOR`, `MAJOR`, or
+  `OFF`). Only stable versions are considered, unless the current version is
+  itself a pre-release. For example, log4j-core 2.14.1 under `PATCH_ONLY`:
+  no 2.14.x fixes Log4Shell, so 2.25.5 (the newest of 2.25, the smallest
+  series that fixes all eight advisories) is proposed.
+- **Nothing allowed fixes everything**: the normal candidate is kept and the
+  report lists what it fixes and what remains; with no candidate at all, the
+  target is reported as `NO_UPDATE_AVAILABLE` with its vulnerabilities.
+
+A larger-than-usual bump is still a normal candidate: it must pass
+`mvn clean verify`, and in the default mode it is only committed locally for
+review. Security fixes are validated and committed **before** other
+candidates, so a commit failure later in the run cannot hold them back.
+
+In the report, such lines carry `vulnerable="..."`, `fixes="..."`,
+`remaining="..."` and `securityEscalated=true` (for a bump beyond the normal
+policy). A failed lookup does not stop the run: the target is handled as
+before, with `securityDiagnostic="..."`. The commit message becomes
+`fix(deps): bump ... (Fixes known vulnerabilities: GHSA-...)` instead of
+`chore(deps): ...`.
+
 ## Exit code contract
 
 - `0`: every target either had nothing new to apply, or was successfully
@@ -168,9 +207,10 @@ unresolved commit failure, not a new problem.
   and whenever you like (cron, a manual invocation, a CI job).
 - No transitive-dependency scanning -- only the target project's own direct,
   non-test-scope `pom.xml` dependencies are considered.
-- No vulnerability-database integration -- this tool's compatibility
-  judgment is "does the real build/test suite still pass," not "is this
-  version free of known CVEs."
+- No vulnerability-free guarantee -- known vulnerabilities only steer which
+  candidate is proposed (see [Security fixes](#security-fixes)). Whether an
+  update is safe to take is still judged by "does the real build/test suite
+  still pass," and an update can only fix what is already known.
 - No multi-module reactor support -- it reads exactly one `pom.xml` at the
   given `repoRoot`.
 

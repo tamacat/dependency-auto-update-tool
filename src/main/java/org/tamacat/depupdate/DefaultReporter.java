@@ -46,9 +46,11 @@ public final class DefaultReporter implements Reporter {
 			UpdateCandidate c = cf.candidate();
 			emit(String.format(
 					"DETECTION target=\"%s\" outcome=CANDIDATE_FOUND current=%s candidate=%s classification=%s",
-					describe(c.target()), c.currentVersion(), c.candidateVersion(), c.classification()));
+					describe(c.target()), c.currentVersion(), c.candidateVersion(), c.classification())
+					+ security(c.security()));
 		} else if (result instanceof NoUpdateAvailable nu) {
-			emit(String.format("DETECTION target=\"%s\" outcome=NO_UPDATE_AVAILABLE", describe(nu.target())));
+			emit(String.format("DETECTION target=\"%s\" outcome=NO_UPDATE_AVAILABLE", describe(nu.target()))
+					+ security(nu.security()));
 		} else if (result instanceof QueryFailed qf) {
 			emit(String.format("DETECTION target=\"%s\" outcome=QUERY_FAILED diagnostic=\"%s\"",
 					describe(qf.target()), sanitize(qf.diagnostic())));
@@ -95,6 +97,29 @@ public final class DefaultReporter implements Reporter {
 	private void emit(String line) {
 		console.println(line);
 		lines.add(line);
+	}
+
+	/** Known-vulnerability fields, only when there is something to say. */
+	private static String security(SecurityStatus s) {
+		StringBuilder sb = new StringBuilder();
+		if (!s.vulnerable().isEmpty()) {
+			sb.append(" vulnerable=\"").append(ids(s.vulnerable())).append('"');
+			sb.append(" fixes=\"").append(ids(s.fixed())).append('"');
+			if (!s.remaining().isEmpty()) {
+				sb.append(" remaining=\"").append(ids(s.remaining())).append('"');
+			}
+			if (s.escalated()) {
+				sb.append(" securityEscalated=true");
+			}
+		}
+		if (s.diagnostic() != null) {
+			sb.append(" securityDiagnostic=\"").append(sanitize(s.diagnostic())).append('"');
+		}
+		return sb.toString();
+	}
+
+	private static String ids(java.util.Set<String> ids) {
+		return String.join(",", ids.stream().sorted().toList());
 	}
 
 	private static void appendApplyResult(StringBuilder sb, ApplyResult applyResult) {

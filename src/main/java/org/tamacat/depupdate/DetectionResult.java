@@ -29,12 +29,18 @@ record CandidateFound(UpdateCandidate candidate) implements DetectionResult {
  * Nothing in-policy is newer for this target. For a
  * {@code PropertyIndirectedTarget}, this includes the case where a newer
  * version exists for some but not all members (business-rules.md BR-1a).
- * Reported, not validated.
+ * Reported, not validated. {@code security} says whether the current version
+ * has known vulnerabilities that no allowed version fixes.
  */
-record NoUpdateAvailable(VersionTarget target) implements DetectionResult {
+record NoUpdateAvailable(VersionTarget target, SecurityStatus security) implements DetectionResult {
+
+	NoUpdateAvailable(VersionTarget target) {
+		this(target, SecurityStatus.NONE);
+	}
 
 	NoUpdateAvailable {
 		Objects.requireNonNull(target, "target");
+		Objects.requireNonNull(security, "security");
 	}
 }
 

@@ -51,8 +51,12 @@ public final class Driver {
 		JdkVersionChecker jdkVersionChecker = new ProcessJdkVersionChecker();
 		Path pomXmlPath = repoRoot.resolve("pom.xml");
 
+		// Known vulnerabilities are looked up in OSV.dev unless securityFixPolicy=OFF
+		VulnerabilityClient vulnerabilityClient = configuration.securityFixPolicy() == SecurityFixPolicy.OFF ? null
+				: new OsvVulnerabilityClient(configuration.vulnerabilityDatabaseUrl(),
+						configuration.repositoryQueryTimeout());
 		DefaultDetector detector = new DefaultDetector(pomXmlPath, configuration, jdkHomeResolver, jdkVersionChecker,
-				repositoryClient, gitClient);
+				repositoryClient, gitClient, vulnerabilityClient);
 
 		try {
 			detector.validateEnvironment();
