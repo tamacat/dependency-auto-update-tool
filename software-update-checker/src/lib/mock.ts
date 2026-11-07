@@ -18,8 +18,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // src-tauri/src/sources.rs と同じ内容
 const SOURCES: DataSource[] = [
-  { id: 'deps.dev', name: 'deps.dev', purpose: '最新バージョン・系列ごとの最新版・非推奨・公開日・ライセンス', hosts: ['api.deps.dev'], sends: 'パッケージ名とバージョン（URL に含まれる）', docs: 'https://docs.deps.dev/api/v3/' },
+  { id: 'deps.dev', name: 'deps.dev', purpose: '最新バージョン・系列ごとの最新版・非推奨・公開日・ライセンス・OpenSSF Scorecard・来歴（SLSA provenance）', hosts: ['api.deps.dev'], sends: 'パッケージ名とバージョン（URL に含まれる）', docs: 'https://docs.deps.dev/api/v3/' },
   { id: 'osv', name: 'OSV.dev', purpose: '既知の脆弱性（GHSA / CVE）', hosts: ['api.osv.dev'], sends: 'パッケージの purl とバージョン（POST 本文）、脆弱性 ID', docs: 'https://google.github.io/osv.dev/api/' },
+  { id: 'cisa-kev', name: 'CISA KEV', purpose: '実際に悪用が確認された脆弱性の一覧（Known Exploited Vulnerabilities）', hosts: ['www.cisa.gov'], sends: 'なし（一覧をまとめて取得し、照合は手元で行う）', docs: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog' },
+  { id: 'epss', name: 'EPSS（FIRST）', purpose: '脆弱性が 30 日以内に悪用される確率の推定', hosts: ['api.first.org'], sends: '脆弱性の CVE ID（URL に含まれる）', docs: 'https://www.first.org/epss/api' },
   { id: 'endoflife.date', name: 'endoflife.date', purpose: '製品のサポート終了日・系列ごとの要件（対応 Java など）', hosts: ['endoflife.date'], sends: 'なし（製品一覧をまとめて取得し、照合は手元で行う）', docs: 'https://endoflife.date/docs/api/v1/' },
   { id: 'maven-central', name: 'Maven Central', purpose: 'jar のクラスファイルから必要な Java バージョンを判定（詳細画面を開いたときのみ）', hosts: ['repo1.maven.org'], sends: 'groupId・artifactId・バージョン（URL に含まれる）。jar は末尾と数クラス分だけ部分取得', docs: 'https://central.sonatype.org/' },
   { id: 'maven-local', name: 'ローカルの Maven', purpose: '「Maven で SBOM 生成」で mvn を実行（依存解決のため、Maven の設定にあるリポジトリへ通信する）', hosts: [], sends: 'Maven が依存解決で行う通信（このツールの外で行われるため、通信ログには実行の開始・終了のみ記録）', docs: 'https://github.com/CycloneDX/cyclonedx-maven-plugin' },
@@ -27,8 +29,10 @@ const SOURCES: DataSource[] = [
 
 // 英語表示のときのデータソースの説明（src-tauri/src/sources.rs の en と同じ）
 const SOURCES_EN: Record<string, Pick<DataSource, 'name' | 'purpose' | 'sends'>> = {
-  'deps.dev': { name: 'deps.dev', purpose: 'Latest versions, latest per series, deprecation, release dates, licenses', sends: 'Package names and versions (in the URL)' },
+  'deps.dev': { name: 'deps.dev', purpose: 'Latest versions, latest per series, deprecation, release dates, licenses, OpenSSF Scorecard, provenance (SLSA)', sends: 'Package names and versions (in the URL)' },
   osv: { name: 'OSV.dev', purpose: 'Known vulnerabilities (GHSA / CVE)', sends: 'Package purls and versions (POST body), vulnerability IDs' },
+  'cisa-kev': { name: 'CISA KEV', purpose: 'Catalog of vulnerabilities known to be exploited (Known Exploited Vulnerabilities)', sends: 'Nothing (the catalog is downloaded and matched locally)' },
+  epss: { name: 'EPSS (FIRST)', purpose: 'Estimated probability that a vulnerability is exploited within 30 days', sends: 'CVE IDs of the vulnerabilities (in the URL)' },
   'endoflife.date': { name: 'endoflife.date', purpose: 'End-of-life dates and per-cycle requirements (supported Java, etc.)', sends: 'Nothing (the product list is downloaded and matched locally)' },
   'maven-central': { name: 'Maven Central', purpose: 'Detects the required Java version from jar class files (only when a detail view is opened)', sends: 'groupId, artifactId and version (in the URL). Only the end of the jar and a few classes are downloaded' },
   'maven-local': { name: 'Local Maven', purpose: 'Runs mvn for "Generate SBOM with Maven" (Maven contacts the repositories in its settings to resolve dependencies)', sends: 'Whatever Maven sends to resolve dependencies (outside this tool; only the start and end are logged)' },
@@ -116,6 +120,10 @@ async function simulateChecks(components: Component[], options: CheckOptions) {
   for (const id of ['GHSA-jhq6-gfmj-v8fx', 'GHSA-p47f-322f-whfh', 'GHSA-qqpg-mvqg-649v']) {
     await http(options, 'osv', 'GET', `https://api.osv.dev/v1/vulns/${id}`);
   }
+  if (!options.disabledSources.includes('cisa-kev')) {
+    await emit('check-progress', { phase: 'kev', done: 0, total: 1 });
+    await http(options, 'cisa-kev', 'GET', 'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json');
+  }
   await emit('check-progress', { phase: 'eol', done: 1, total: 1 });
   await http(options, 'endoflife.date', 'GET', 'https://endoflife.date/api/v1/products/full');
   await record({ kind: 'app', message: 'チェック完了: 1.2 秒' });
@@ -128,7 +136,11 @@ function filterResults(options: CheckOptions): CheckResult[] {
     ...r,
     version: off('deps.dev') ? null : r.version,
     licenses: off('deps.dev') ? [] : r.licenses,
-    vulnerabilities: off('osv') ? [] : r.vulnerabilities,
+    vulnerabilities: off('osv')
+      ? []
+      : r.vulnerabilities.map((v) => ({ ...v, kev: off('cisa-kev') ? null : v.kev, epss: off('epss') ? null : v.epss })),
+    fix: off('osv') ? null : r.fix,
+    supplyChain: off('deps.dev') || !options.supplyChain ? null : r.supplyChain,
     eol: off('endoflife.date') ? null : r.eol,
   }));
 }

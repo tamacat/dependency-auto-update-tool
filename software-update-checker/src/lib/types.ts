@@ -36,6 +36,8 @@ export interface CheckOptions {
   network: NetworkSettings;
   /** 読み込み専用で参照する共有の Java 要件ナレッジファイル */
   sharedKnowledgeFiles: string[];
+  /** OpenSSF Scorecard と来歴（SLSA provenance）を deps.dev から取得する */
+  supplyChain: boolean;
 }
 
 /** src-tauri/src/netguard.rs の NetworkSettings と対応。範囲外の値はバックエンドで丸められる。 */
@@ -177,6 +179,59 @@ export interface VulnInfo {
   fixedVersions: string[];
   published: string | null;
   url: string;
+  /** 悪意あるパッケージの報告（OSV の MAL- ID） */
+  malicious?: boolean;
+  /** CISA KEV（悪用が確認された脆弱性）に載っている */
+  kev?: KevInfo | null;
+  epss?: EpssInfo | null;
+}
+
+export interface KevInfo {
+  cve: string;
+  dateAdded: string | null;
+  dueDate: string | null;
+  ransomware: boolean;
+  requiredAction: string | null;
+}
+
+export interface EpssInfo {
+  cve: string;
+  /** 0〜1 */
+  score: number;
+  /** 0〜1（0.99 なら上位 1%） */
+  percentile: number;
+  date: string | null;
+}
+
+/** 脆弱性をすべて直せる更新先 */
+export interface FixAdvice {
+  inSeries: string | null;
+  inMajor: string | null;
+  minimum: string | null;
+  /** どの版に上げても直らない脆弱性の ID */
+  unfixed: string[];
+}
+
+export interface SupplyChainInfo {
+  /** github.com/owner/repo 形式 */
+  sourceRepo: string | null;
+  /** ソースリポジトリとの対応が来歴で裏付けられているか */
+  sourceRepoVerified: boolean;
+  scorecard: ScorecardInfo | null;
+  provenance: ProvenanceInfo[];
+}
+
+export interface ScorecardInfo {
+  overall: number;
+  date: string | null;
+  checks: { name: string; score: number | null; reason: string | null }[];
+}
+
+export interface ProvenanceInfo {
+  kind: string | null;
+  verified: boolean;
+  sourceRepository: string | null;
+  commit: string | null;
 }
 
 export type EolStatus = 'supported' | 'eol' | 'unknown';
@@ -208,6 +263,8 @@ export interface CheckResult {
   vulnerabilities: VulnInfo[];
   eol: EolInfo | null;
   licenses: string[];
+  fix?: FixAdvice | null;
+  supplyChain?: SupplyChainInfo | null;
   errors: string[];
 }
 
@@ -257,4 +314,5 @@ export const DEFAULT_OPTIONS: CheckOptions = {
   useCache: true,
   network: { ...DEFAULT_NETWORK },
   sharedKnowledgeFiles: [],
+  supplyChain: true,
 };

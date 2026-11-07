@@ -22,11 +22,13 @@
     .catch(() => {});
 
   /** アプリが表示する外部データの出典とライセンス（README の「データソース」と同じ） */
-  const DATA_ATTRIBUTIONS: { name: string; url: string; license: string; licenseUrl: string }[] = [
+  const DATA_ATTRIBUTIONS = $derived<{ name: string; url: string; license: string; licenseUrl: string }[]>([
     { name: 'deps.dev (Open Source Insights)', url: 'https://deps.dev/', license: 'CC BY 4.0', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/' },
     { name: 'OSV.dev / GitHub Advisory Database', url: 'https://osv.dev/', license: 'CC BY 4.0', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/' },
     { name: 'endoflife.date', url: 'https://endoflife.date/', license: 'MIT', licenseUrl: 'https://github.com/endoflife-date/endoflife.date/blob/master/LICENSE' },
-  ];
+    { name: 'CISA Known Exploited Vulnerabilities Catalog', url: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog', license: 'CC0 1.0', licenseUrl: 'https://github.com/cisagov/kev-data/blob/develop/LICENSE' },
+    { name: 'EPSS (FIRST)', url: 'https://www.first.org/epss/', license: t('about.epssTerms'), licenseUrl: 'https://www.first.org/epss/faq' },
+  ]);
 
   let noticesDialog: HTMLDialogElement;
   let notices = $state<string | null>(null);
@@ -190,6 +192,7 @@
     <fieldset>
       <legend>{t('settings.judgement')}</legend>
       <label><input type="checkbox" bind:checked={options.includePrerelease} /> {t('settings.includePrerelease')}</label>
+      <label><input type="checkbox" bind:checked={options.supplyChain} /> {t('settings.supplyChain')}</label>
       <label>
         {t('settings.staleBefore')}
         <input type="number" min="1" max="20" bind:value={options.staleYears} />

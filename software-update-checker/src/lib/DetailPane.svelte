@@ -3,9 +3,9 @@
   import { message } from '@tauri-apps/plugin-dialog';
   import * as api from './api';
   import { openExternal } from './external';
-  import { date, displayName, severityLabel, updateLabel } from './format';
+  import { date, displayName, percent, severityLabel, updateLabel } from './format';
   import { t, type MessageKey } from './i18n';
-  import type { CheckOptions, Component, JavaRequirement, JavaRule, Row } from './types';
+  import type { CheckOptions, Component, FixAdvice, JavaRequirement, JavaRule, KevInfo, Row } from './types';
 
   let {
     row,
@@ -127,6 +127,34 @@
     }
   }
 
+  /** 修正版の候補を、同じ版が続くときはまとめて表示する（同じ系列 = 同じメジャー = 最小 など）。 */
+  function fixTargets(fix: FixAdvice): { labels: string[]; version: string }[] {
+    const list: { labels: string[]; version: string }[] = [];
+    const entries: [MessageKey, string | null][] = [
+      ['detail.fixInSeries', fix.inSeries],
+      ['detail.fixInMajor', fix.inMajor],
+      ['detail.fixMinimum', fix.minimum],
+    ];
+    for (const [key, version] of entries) {
+      if (!version) continue;
+      const same = list.find((x) => x.version === version);
+      if (same) same.labels.push(t(key));
+      else list.push({ labels: [t(key)], version });
+    }
+    return list;
+  }
+
+  function kevTitle(k: KevInfo): string {
+    const lines = [t('detail.kevTitle', { date: date(k.dateAdded) || '—', due: date(k.dueDate) || '—' })];
+    if (k.ransomware) lines.push(t('detail.kevRansomware'));
+    if (k.requiredAction) lines.push(k.requiredAction);
+    return lines.join('\n');
+  }
+
+  const kevUrl = (cve: string) =>
+    `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${encodeURIComponent(cve)}`;
+  const scorecardUrl = (repo: string) => `https://scorecard.dev/viewer/?uri=${encodeURIComponent(repo)}`;
+
   const REQUIREMENT_LABEL: Record<string, MessageKey> = {
     minJavaVersion: 'common.requiredJava',
     supportedJavaVersions: 'eol.req.supportedJava',
@@ -245,13 +273,43 @@
       {/if}
 
       <h3>{t('col.vulns')} ({row.result.vulnerabilities.length})</h3>
+      {#if row.result.vulnerabilities.some((x) => x.malicious)}
+        <p class="alert">{t('detail.maliciousNote')}</p>
+      {/if}
+      {#if row.result.fix}
+        {@const fix = row.result.fix}
+        {@const targets = fixTargets(fix)}
+        <dl>
+          <dt>{t('detail.fixTitle')}</dt>
+          <dd>
+            {#each targets as target}
+              <div><span class="mono">{target.version}</span> <span class="muted small">({target.labels.join(' / ')})</span></div>
+            {:else}
+              <span class="warn">{t('detail.fixNone')}</span>
+            {/each}
+            {#if fix.unfixed.length && targets.length}
+              <div class="warn small">{t('detail.unfixed')}: <span class="mono">{fix.unfixed.join(', ')}</span></div>
+            {/if}
+          </dd>
+        </dl>
+      {/if}
       {#each row.result.vulnerabilities as vuln (vuln.id)}
-        {@const cve = vuln.aliases.find((a) => a.startsWith('CVE-'))}
+        {@const cve = vuln.aliases.find((a) => a.startsWith('CVE-')) ?? (vuln.id.startsWith('CVE-') ? vuln.id : undefined)}
         <div class="vuln">
           <div>
+            {#if vuln.malicious}<span class="pill sev-critical">{t('detail.malicious')}</span>{/if}
+            {#if vuln.kev}
+              {@const kev = vuln.kev}
+              <button class="pill sev-critical kev" title={kevTitle(kev)} onclick={() => openExternal(kevUrl(kev.cve))}>KEV{kev.ransomware ? ' ⚠' : ''}</button>
+            {/if}
             <span class="pill sev-{vuln.severity}">{severityLabel(vuln.severity)}{vuln.score != null ? ` ${vuln.score.toFixed(1)}` : ''}</span>
             <button class="link mono" onclick={() => openExternal(vuln.url)}>{vuln.id}</button>
             {#if cve}<span class="mono muted">{cve}</span>{/if}
+            {#if vuln.epss}
+              <span class="small epss" class:warn={vuln.epss.score >= 0.1} title={t('detail.epssTitle', { date: date(vuln.epss.date) || '—' })}>
+                {t('detail.epss', { score: percent(vuln.epss.score), top: percent(Math.max(0, 1 - vuln.epss.percentile)) })}
+              </span>
+            {/if}
           </div>
           {#if vuln.summary}<div>{vuln.summary}</div>{/if}
           {#if vuln.fixedVersions.length}
@@ -296,6 +354,60 @@
         {/if}
       {:else}
         <p class="muted">{t('detail.noProduct')}</p>
+      {/if}
+
+      {#if c.ecosystem !== 'other'}
+        {@const sc = row.result.supplyChain}
+        <h3>{t('detail.supplyChain')}</h3>
+        {#if !options.supplyChain}
+          <p class="muted small">{t('detail.supplyChainOff')}</p>
+        {:else if sc}
+          <dl>
+            <dt>{t('detail.sourceRepo')}</dt>
+            <dd class="break">
+              {#if sc.sourceRepo}
+                <span class="mono small">{sc.sourceRepo}</span>
+                <span class="muted small">({sc.sourceRepoVerified ? t('detail.repoVerified') : t('detail.repoUnverified')})</span>
+              {:else}—{/if}
+            </dd>
+            <dt>{t('detail.scorecard')}</dt>
+            <dd>
+              {#if sc.scorecard && sc.sourceRepo}
+                {@const repo = sc.sourceRepo}
+                <button class="link" class:warn={sc.scorecard.overall < 5} onclick={() => openExternal(scorecardUrl(repo))}>{sc.scorecard.overall.toFixed(1)} / 10</button>
+                <span class="muted small">({date(sc.scorecard.date)})</span>
+              {:else}—{/if}
+            </dd>
+            <dt>{t('detail.provenance')}</dt>
+            <dd>
+              {#if sc.provenance.some((p) => p.verified)}
+                <span class="ok">{t('detail.provenanceVerified')}</span>
+              {:else if sc.provenance.length}
+                <span class="warn">{t('detail.provenanceUnverified')}</span>
+              {:else}
+                <span class="muted">{t('detail.provenanceNone')}</span>
+              {/if}
+            </dd>
+          </dl>
+          {#if sc.scorecard?.checks.length}
+            <details>
+              <summary class="small">{t('detail.scorecardChecks')}</summary>
+              <table class="compact">
+                <tbody>
+                  {#each sc.scorecard.checks as check (check.name)}
+                    <tr>
+                      <td>{check.name}</td>
+                      <td class="mono" class:warn={check.score != null && check.score < 5}>{check.score ?? '—'}</td>
+                      <td class="small muted">{check.reason ?? ''}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </details>
+          {/if}
+        {:else}
+          <p class="muted">{t('detail.noInfo')}</p>
+        {/if}
       {/if}
 
       {#if row.result.errors.length}

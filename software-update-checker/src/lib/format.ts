@@ -25,6 +25,10 @@ const PHASE_KEY: Record<string, MessageKey> = {
   licenses: 'phase.licenses',
   vulnerabilities: 'phase.vulnerabilities',
   vulnerabilityDetails: 'phase.vulnerabilityDetails',
+  versionDetails: 'phase.versionDetails',
+  scorecard: 'phase.scorecard',
+  kev: 'phase.kev',
+  epss: 'phase.epss',
   eol: 'phase.eol',
   done: 'phase.done',
 };
@@ -42,6 +46,15 @@ export function date(s: string | null | undefined): string {
   return formatDate(s);
 }
 
+/** 0〜1 の値を百分率に。小さい値も 0 にならず、99.99% が 100% に丸められないよう切り捨てる。 */
+export function percent(x: number): string {
+  const p = x * 100;
+  if (p > 0 && p < 0.01) return '<0.01%';
+  const digits = p >= 10 ? 1 : 2;
+  const unit = 10 ** digits;
+  return `${(Math.floor(p * unit) / unit).toFixed(digits)}%`;
+}
+
 export function severityRank(s: Severity | null): number {
   return s ? 5 - SEVERITY_ORDER.indexOf(s) : 0;
 }
@@ -57,6 +70,8 @@ export function maxSeverity(severities: Severity[]): Severity | null {
 /** 行に「要対応」の印を付ける条件（ダッシュボードとフィルターで共通）。 */
 export const is = {
   vulnerable: (r: Row) => (r.result?.vulnerabilities.length ?? 0) > 0,
+  malicious: (r: Row) => !!r.result?.vulnerabilities.some((v) => v.malicious),
+  exploited: (r: Row) => !!r.result?.vulnerabilities.some((v) => v.kev),
   outdated: (r: Row) => {
     const k = r.result?.version?.updateKind;
     return k === 'major' || k === 'minor' || k === 'patch';

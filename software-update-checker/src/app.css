@@ -447,6 +447,31 @@ dd {
 .vuln .pill {
   margin: 0 6px 0 0;
 }
+/* KEV の印は CISA の一覧を開くボタンにもなっている */
+button.pill {
+  font-family: inherit;
+  line-height: inherit;
+  background: none;
+  cursor: pointer;
+}
+button.pill.sev-critical {
+  background: var(--danger-bg);
+}
+.epss {
+  margin-left: 6px;
+  color: var(--muted);
+}
+.epss.warn {
+  color: var(--warn);
+}
+.alert {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  background: var(--danger-bg);
+  color: var(--danger);
+}
 
 /* 設定ダイアログ（画面の高さに収め、見出しとボタン行を固定して本文だけスクロールする） */
 dialog.settings {

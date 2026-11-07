@@ -1,10 +1,14 @@
 # software-update-checker（実験版）
 
-pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS について次の 3 点を確認するデスクトップ GUI ツールです。
+pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS について次の点を確認するデスクトップ GUI ツールです。
 
 - **最新バージョン**: 同じ系列（メジャー.マイナー）内の最新版、全体の最新版、系列ごとの最新版の一覧、更新の大きさ（パッチ／マイナー／メジャー）、非推奨かどうか、最終リリース日
 - **必要な Java**（Maven）: 系列ごとの最新版の jar から、実行に必要な Java を判定（logback 1.3 系は Java 8、1.4 系以降は Java 11 のように、系列で要件が変わるものを見分けるため）
 - **脆弱性**: 既知の脆弱性（GHSA / CVE）、深刻度、CVSS スコア、修正済みバージョン
+  - **悪用の状況**: 実際に悪用が確認されたもの（CISA KEV）と、30 日以内に悪用される確率の推定（EPSS）。一覧は「悪意あるパッケージ → KEV → 深刻度 → EPSS」の順に並ぶ
+  - **悪意あるパッケージ**: OSV の `MAL-` で始まる報告（OpenSSF Malicious Packages）。深刻度は Critical として扱い、取り除くよう表示する
+  - **直せる更新先**: 影響を受ける版の範囲から、すべての脆弱性を直せる最小の版を「同じ系列」「同じメジャー」「系列を問わない」の 3 つで求める。どの版でも直らないものは「修正版なし」として示す
+- **サプライチェーン**: ソースリポジトリ、OpenSSF Scorecard（リポジトリの運用の健全性）、来歴（SLSA provenance・attestation）の有無と検証結果。設定の「判定」で OFF にできる（OFF のときはライセンスの補完に必要な分だけ deps.dev に照会する）
 - **サポート終了（EOL）**: 製品のサイクルごとのサポート状況・終了日・要件（Tomcat の必要 Java など）
 
 一覧表示のほか、依存関係のツリー表示（絞り込み時は該当する部品へ至る経路だけを表示）ができます。
@@ -28,8 +32,10 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 
 | データソース | 接続先 | 用途 | 送信される情報 | キャッシュ期間 |
 |---|---|---|---|---|
-| [deps.dev](https://docs.deps.dev/api/v3/) | api.deps.dev | 最新版・系列ごとの最新版・非推奨・公開日・ライセンス | パッケージ名とバージョン（URL） | 24 時間 |
+| [deps.dev](https://docs.deps.dev/api/v3/) | api.deps.dev | 最新版・系列ごとの最新版・非推奨・公開日・ライセンス・OpenSSF Scorecard・来歴 | パッケージ名とバージョン、ソースリポジトリ名（URL） | 24 時間（版の一覧）／7 日（版の詳細・Scorecard） |
 | [OSV.dev](https://google.github.io/osv.dev/api/) | api.osv.dev | 脆弱性 | purl とバージョン（POST 本文）、脆弱性 ID | 6 時間（ID 一覧）／24 時間（詳細） |
+| [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | www.cisa.gov | 悪用が確認された脆弱性 | なし（一覧をまとめて取得し、照合は手元） | 24 時間 |
+| [EPSS](https://www.first.org/epss/api)（FIRST） | api.first.org | 悪用される確率の推定 | 脆弱性の CVE ID（URL） | 24 時間 |
 | [endoflife.date](https://endoflife.date/docs/api/v1/) | endoflife.date | サポート終了・サイクルごとの要件 | なし（製品一覧をまとめて取得し、照合は手元） | 7 日 |
 | Maven Central | repo1.maven.org | jar から必要な Java を判定（詳細画面を開いたとき、ナレッジに記録が無いものだけ） | groupId・artifactId・バージョン（URL）。jar は末尾と数クラス分だけ Range で部分取得 | ナレッジに記録 |
 | ローカルの Maven | （mvn が設定に従って通信） | 「Maven で SBOM 生成」 | Maven の依存解決による通信。このツールの外で行われるため、ログには実行の開始・終了のみ | — |
@@ -41,6 +47,8 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 | deps.dev | deps.dev が生成したデータは [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 | OSV.dev | 収録元ごとのライセンス。GitHub Advisory Database 由来のものは [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 | endoflife.date | [MIT](https://github.com/endoflife-date/endoflife.date/blob/master/LICENSE) |
+| CISA KEV | [CC0 1.0](https://github.com/cisagov/kev-data/blob/develop/LICENSE) |
+| EPSS | 無償で公開。利用時は出典の明記が求められている（[FAQ](https://www.first.org/epss/faq)） |
 | Maven Central | jar から判定した Java のバージョン（事実情報） |
 
 - 設定画面でデータソースごとに ON/OFF できます。OFF にしたデータソースへの通信は、HTTP 層で**送信前に遮断**し、遮断したこと自体も記録します。登録されていないホストへの通信も同様に遮断します。
@@ -121,7 +129,7 @@ software-update-checker/
 └─ src-tauri/              バックエンド（Rust、ロジックはすべてこちら）
    ├─ src/model.rs         共通データモデル（フロントの lib/types.ts と対応）
    ├─ src/importers/       入力形式ごとの取り込み（Importer トレイト）
-   ├─ src/checks/          チェック種別ごとの処理（versions / vulns / eol / java、CVSS 計算）
+   ├─ src/checks/          チェック種別ごとの処理（versions / supply / vulns / exploit / eol / java、CVSS 計算）
    ├─ src/sources.rs       データソース（通信先）の登録表
    ├─ src/http.rs          HTTP クライアント・通信先の許可制御・再試行・ファイルキャッシュ
    ├─ src/netguard.rs      流量制御（間隔・上限・繰り返し遮断・一時停止）
@@ -136,7 +144,7 @@ software-update-checker/
 - **外部 API はすべて Rust 側から呼ぶ**: 画面（WebView）には外部への通信を許可していません。
 - **CSP**: `script-src 'self'; style-src 'self'` などで、インラインのスクリプトやスタイルを禁止しています。画面のスタイルは CSS ファイルと、JavaScript から個別に設定するもの（Svelte の `style:` 指令）だけを使います。
 - **ファイルの書き込み先は利用者が選んだ場所だけ**: CSV / JSON 出力とナレッジの書き出しでは、保存先のダイアログをバックエンド側で出し、そこで選ばれたパスにだけ書き込みます。画面からパスを指定して書き込むコマンドはありません。
-- **開ける外部ページを限定**: ブラウザで開けるのは `https://osv.dev/*` と `https://endoflife.date/*` だけです（`capabilities/default.json`）。
+- **開ける外部ページを限定**: ブラウザで開けるのは `https://osv.dev/*`、`https://endoflife.date/*`、`https://scorecard.dev/viewer/*`、CISA KEV の一覧ページだけです（`capabilities/default.json`）。
 - **信頼できない入力への備え**:
   - XML は DTD を受け付けません（XXE・Billion Laughs 対策）。
   - jar のクラスファイルは先頭 64 バイトまでしか展開しません（展開爆弾対策）。
@@ -280,6 +288,8 @@ gh attestation verify software-update-checker_0.1.0_windows-x64.exe --repo tamac
 ```
 
 ## 未対応・今後の課題
+
+- **推移的依存の直し方**: 推移的依存の脆弱性を消すために、どの直接依存をどの版に上げればよいかはまだ求めていません（部品ごとの「直せる更新先」と、詳細画面の「依存元」から辿る必要があります）。
 
 - **自動更新**: 未設定。`tauri-plugin-updater` を追加し、`tauri signer generate` で作った署名鍵の公開鍵と、更新情報の配信 URL（GitHub Releases など）を `tauri.conf.json` に設定する必要があります。秘密鍵はリポジトリに入れず CI のシークレットで管理します。
 - **配布用の署名**: Windows のコード署名（SignPath Foundation への申請を検討）、macOS の公証（Apple Developer Program）。

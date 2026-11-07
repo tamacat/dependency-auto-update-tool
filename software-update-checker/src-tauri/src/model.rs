@@ -153,6 +153,10 @@ pub struct CheckOptions {
     pub network: crate::netguard::NetworkSettings,
     /// 読み込み専用で参照する、共有の Java 要件ナレッジファイル
     pub shared_knowledge_files: Vec<String>,
+    /// 全部品について deps.dev のバージョン詳細とプロジェクト情報を取り、
+    /// OpenSSF Scorecard と来歴（SLSA provenance・attestation）を確認する。
+    /// false なら、ライセンスが入力に無い部品のバージョン詳細だけを取る。
+    pub supply_chain: bool,
 }
 
 impl Default for CheckOptions {
@@ -164,6 +168,7 @@ impl Default for CheckOptions {
             use_cache: true,
             network: crate::netguard::NetworkSettings::default(),
             shared_knowledge_files: Vec::new(),
+            supply_chain: true,
         }
     }
 }
@@ -262,6 +267,95 @@ pub struct VulnInfo {
     pub fixed_versions: Vec<String>,
     pub published: Option<String>,
     pub url: String,
+    /// 悪意あるパッケージとして報告されたもの（OSV の `MAL-` ID。OpenSSF Malicious Packages 由来）。
+    #[serde(default)]
+    pub malicious: bool,
+    /// CISA KEV（実際に悪用が確認された脆弱性の一覧）に載っているか。
+    #[serde(default)]
+    pub kev: Option<KevInfo>,
+    /// EPSS（30 日以内に悪用される確率の推定）。
+    #[serde(default)]
+    pub epss: Option<EpssInfo>,
+}
+
+/// CISA KEV の記録。
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct KevInfo {
+    pub cve: String,
+    pub date_added: Option<String>,
+    /// 米国政府機関向けの対応期限
+    pub due_date: Option<String>,
+    /// ランサムウェアでの悪用が確認されているか
+    pub ransomware: bool,
+    pub required_action: Option<String>,
+}
+
+/// EPSS のスコア。
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct EpssInfo {
+    pub cve: String,
+    /// 0.0〜1.0
+    pub score: f64,
+    /// 全 CVE の中での順位（0.0〜1.0。0.99 なら上位 1%）
+    pub percentile: f64,
+    pub date: Option<String>,
+}
+
+/// 脆弱性を解消できる更新先。
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct FixAdvice {
+    /// 現行と同じ系列（メジャー.マイナー）で、直せるものをすべて直せる最小の版
+    pub in_series: Option<String>,
+    /// 現行と同じメジャーバージョンで、直せるものをすべて直せる最小の版
+    pub in_major: Option<String>,
+    /// 系列を問わず、直せるものをすべて直せる最小の版
+    pub minimum: Option<String>,
+    /// どの版に上げても直らない（修正版が無い・判定できない）脆弱性の ID
+    pub unfixed: Vec<String>,
+}
+
+/// サプライチェーンの情報（deps.dev のバージョン詳細とプロジェクト情報から）。
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplyChainInfo {
+    /// ソースリポジトリ（`github.com/owner/repo` 形式）
+    pub source_repo: Option<String>,
+    /// ソースリポジトリとの対応が来歴で裏付けられているか（自己申告のメタデータだけなら false）
+    pub source_repo_verified: bool,
+    pub scorecard: Option<ScorecardInfo>,
+    /// 来歴（SLSA provenance・attestation）。無ければ空。
+    pub provenance: Vec<ProvenanceInfo>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ScorecardInfo {
+    /// 0〜10
+    pub overall: f64,
+    pub date: Option<String>,
+    pub checks: Vec<ScorecardCheck>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ScorecardCheck {
+    pub name: String,
+    /// 0〜10。判定対象外なら `None`
+    pub score: Option<i32>,
+    pub reason: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProvenanceInfo {
+    /// 証明の種類（`https://slsa.dev/provenance/v1` など）
+    pub kind: Option<String>,
+    pub verified: bool,
+    pub source_repository: Option<String>,
+    pub commit: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
@@ -324,6 +418,9 @@ pub struct CheckResult {
     pub eol: Option<EolInfo>,
     /// 取り込み時にライセンスがなかった場合、deps.dev から補完した値。
     pub licenses: Vec<String>,
+    /// 脆弱性がある場合の、解消できる更新先
+    pub fix: Option<FixAdvice>,
+    pub supply_chain: Option<SupplyChainInfo>,
     pub errors: Vec<String>,
 }
 

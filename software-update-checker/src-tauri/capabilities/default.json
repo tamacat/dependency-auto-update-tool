@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "メインウィンドウに許可する操作。ファイル選択ダイアログ、osv.dev と endoflife.date のページをブラウザで開くこと、ログとナレッジのフォルダを開くことだけを許可する。ファイルの保存先はバックエンドのダイアログで選ばせる。",
+  "description": "メインウィンドウに許可する操作。ファイル選択ダイアログ、osv.dev・endoflife.date・scorecard.dev・CISA KEV のページをブラウザで開くこと、ログとナレッジのフォルダを開くことだけを許可する。ファイルの保存先はバックエンドのダイアログで選ばせる。",
   "windows": [
     "main"
   ],
@@ -18,6 +18,12 @@
         },
         {
           "url": "https://endoflife.date/*"
+        },
+        {
+          "url": "https://scorecard.dev/viewer/*"
+        },
+        {
+          "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog*"
         }
       ]
     },

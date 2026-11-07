@@ -72,6 +72,8 @@ pub struct DataSourceView {
 pub const DEPS_DEV: &str = "deps.dev";
 pub const OSV: &str = "osv";
 pub const ENDOFLIFE: &str = "endoflife.date";
+pub const KEV: &str = "cisa-kev";
+pub const EPSS: &str = "epss";
 pub const MAVEN_CENTRAL: &str = "maven-central";
 pub const MAVEN_LOCAL: &str = "maven-local";
 
@@ -80,8 +82,8 @@ pub const SOURCES: &[DataSource] = &[
         id: DEPS_DEV,
         name: text("deps.dev", "deps.dev"),
         purpose: text(
-            "最新バージョン・系列ごとの最新版・非推奨・公開日・ライセンス",
-            "Latest versions, latest per series, deprecation, release dates, licenses",
+            "最新バージョン・系列ごとの最新版・非推奨・公開日・ライセンス・OpenSSF Scorecard・来歴（SLSA provenance）",
+            "Latest versions, latest per series, deprecation, release dates, licenses, OpenSSF Scorecard, provenance (SLSA)",
         ),
         hosts: &["api.deps.dev"],
         sends: text("パッケージ名とバージョン（URL に含まれる）", "Package names and versions (in the URL)"),
@@ -97,6 +99,31 @@ pub const SOURCES: &[DataSource] = &[
             "Package purls and versions (POST body), vulnerability IDs",
         ),
         docs: "https://google.github.io/osv.dev/api/",
+    },
+    DataSource {
+        id: KEV,
+        name: text("CISA KEV", "CISA KEV"),
+        purpose: text(
+            "実際に悪用が確認された脆弱性の一覧（Known Exploited Vulnerabilities）",
+            "Catalog of vulnerabilities known to be exploited (Known Exploited Vulnerabilities)",
+        ),
+        hosts: &["www.cisa.gov"],
+        sends: text(
+            "なし（一覧をまとめて取得し、照合は手元で行う）",
+            "Nothing (the catalog is downloaded and matched locally)",
+        ),
+        docs: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+    },
+    DataSource {
+        id: EPSS,
+        name: text("EPSS（FIRST）", "EPSS (FIRST)"),
+        purpose: text(
+            "脆弱性が 30 日以内に悪用される確率の推定",
+            "Estimated probability that a vulnerability is exploited within 30 days",
+        ),
+        hosts: &["api.first.org"],
+        sends: text("脆弱性の CVE ID（URL に含まれる）", "CVE IDs of the vulnerabilities (in the URL)"),
+        docs: "https://www.first.org/epss/api",
     },
     DataSource {
         id: ENDOFLIFE,

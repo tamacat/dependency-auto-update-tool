@@ -45,6 +45,7 @@
           useCache: parsed.useCache ?? DEFAULT_OPTIONS.useCache,
           network: { ...DEFAULT_NETWORK, ...(parsed.network ?? {}) },
           sharedKnowledgeFiles: Array.isArray(parsed.sharedKnowledgeFiles) ? parsed.sharedKnowledgeFiles : [],
+          supplyChain: parsed.supplyChain ?? DEFAULT_OPTIONS.supplyChain,
         };
       }
     } catch {
