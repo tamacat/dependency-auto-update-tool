@@ -1,11 +1,24 @@
-[package]
-name = "software-update-checker"
+# GUI（このパッケージ）、共通の処理（core）、CI 向けのコマンドライン版（cli）の 3 つ。
+# Cargo.lock と target/ はこのディレクトリに置く（tauri のビルドとリリースの手順がここを見るため）。
+[workspace]
+members = ["core", "cli"]
+
+# 版番号はここだけで管理する（package.json・tauri.conf.json と同じ値にそろえる）
+[workspace.package]
 version = "0.2.0"
-description = "SBOM / pom.xml から依存ソフトウェアを一覧化し、最新版・脆弱性・EOL を確認する GUI ツール"
 edition = "2021"
 rust-version = "1.82"
 license = "Apache-2.0"
 repository = "https://github.com/tamacat/dependency-auto-update-tool"
+
+[package]
+name = "software-update-checker"
+version.workspace = true
+description = "SBOM / pom.xml から依存ソフトウェアを一覧化し、最新版・脆弱性・EOL を確認する GUI ツール"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [lib]
 name = "software_update_checker_lib"
@@ -16,19 +29,13 @@ crate-type = ["rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+software-update-checker-core = { path = "core" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-# OS の TLS ライブラリに依存しないよう rustls を使う
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
-roxmltree = "0.20"
-# poetry.lock・uv.lock・pyproject.toml の読み込み。tauri の依存に既に含まれている
-toml = { version = "1", default-features = false, features = ["std", "serde", "parse"] }
 tokio = { version = "1", features = ["sync", "rt", "time"] }
-# jar 内のクラスファイル（deflate）の展開。tauri の依存に既に含まれている
-miniz_oxide = "0.8"
 
 [profile.release]
 # 配布サイズを小さくする
@@ -38,5 +45,3 @@ opt-level = "s"
 panic = "abort"
 strip = true
 
-[dev-dependencies]
-tokio = { version = "1", features = ["macros", "rt"] }
