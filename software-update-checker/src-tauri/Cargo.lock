@@ -3446,7 +3446,7 @@ dependencies = [
 
 [[package]]
 name = "software-update-checker"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "miniz_oxide 0.8.9",
  "reqwest 0.12.28",
