@@ -53,6 +53,8 @@ pub fn run() {
             commands::generate_sbom_with_maven,
             commands::run_checks,
             commands::java_requirements,
+            commands::runtime_requirements,
+            commands::runtime_status,
             commands::knowledge_list,
             commands::knowledge_upsert,
             commands::knowledge_delete,

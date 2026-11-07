@@ -212,6 +212,17 @@ fn cycles_from(product: &Product, current: Option<&Release>) -> Vec<EolCycle> {
         .collect()
 }
 
+/// 製品名（`nodejs`、`python` など）と版から、そのサイクルの EOL 情報を得る。
+/// 利用者が設定した実行環境のサポート状況に使う。製品が無ければ `Ok(None)`。
+pub async fn product_cycle(http: &Http, opts: &CheckOptions, product: &str, version: &str) -> Result<Option<EolInfo>, String> {
+    let res = http.get(PRODUCTS_URL, ttl(opts, 24 * 7)).await?;
+    if !res.is_success() {
+        return Err(format!("HTTP {}", res.status));
+    }
+    let products = serde_json::from_str::<ProductsResponse>(&res.body).map_err(|e| e.to_string())?.result;
+    Ok(products.iter().find(|p| p.name == product).map(|p| to_eol_info(p, EolMatch::Exact, Some(version))))
+}
+
 pub async fn check(
     http: &Http,
     targets: &[&Component],

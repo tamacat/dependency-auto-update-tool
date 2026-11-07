@@ -5,7 +5,7 @@
   import { openExternal } from './external';
   import { date, displayName, percent, severityLabel, updateLabel } from './format';
   import { t, type MessageKey } from './i18n';
-  import type { CheckOptions, Component, FixAdvice, JavaRequirement, JavaRule, KevInfo, Row } from './types';
+  import type { CheckOptions, Component, FixAdvice, JavaRequirement, JavaRule, KevInfo, Row, RuntimeRequirement } from './types';
 
   let {
     row,
@@ -69,10 +69,89 @@
 
   const currentJava = $derived(row?.component.version ? java[row.component.version]?.java ?? null : null);
 
-  /** 現行より新しい Java が必要か（`1.4` 形式も数値として比較）。 */
+  /** `1.8` 形式も数値として扱う Java の版の比較用の値。 */
+  const javaNumber = (v: string) => parseFloat(v.replace(/^1\./, '0.'));
+
+  /** 現行より新しい Java が必要か。 */
   function needsNewerJava(required: string | null | undefined): boolean {
     if (!required || !currentJava) return false;
-    return parseFloat(required.replace(/^1\./, '0.')) > parseFloat(currentJava.replace(/^1\./, '0.'));
+    return javaNumber(required) > javaNumber(currentJava);
+  }
+
+  /** 設定した Java では動かないか。 */
+  function javaTargetBad(required: string | null | undefined): boolean {
+    const target = options.runtimeTargets.java.trim();
+    if (!required || !target || Number.isNaN(javaNumber(target))) return false;
+    return javaNumber(required) > javaNumber(target);
+  }
+
+  // ---- 必要な Node.js・Python（npm・PyPI）。レジストリが宣言する範囲を取得する
+  let runtime = $state<Record<string, RuntimeRequirement>>({});
+  let runtimeLoading = $state(false);
+  const runtimeEcosystem = $derived(row?.component.ecosystem === 'npm' || row?.component.ecosystem === 'pypi' ? row.component.ecosystem : null);
+  const runtimeSource = $derived(runtimeEcosystem === 'npm' ? 'npm-registry' : 'pypi');
+  const runtimeLabel = $derived(runtimeEcosystem === 'npm' ? 'Node.js' : 'Python');
+  const runtimeSourceEnabled = $derived(!options.disabledSources.includes(runtimeSource));
+  const runtimeRequestKey = $derived.by(() => {
+    const c = row?.component;
+    const v = row?.result?.version;
+    if (!c || !runtimeEcosystem || !c.version || !v) return null;
+    const versions = [...new Set([c.version, ...(v.latestInMinor ? [v.latestInMinor] : []), ...v.series.map((s) => s.latest)])];
+    return JSON.stringify([c.id, versions, options.runtimeTargets, runtimeSourceEnabled]);
+  });
+
+  $effect(() => {
+    runtimeRequestKey;
+    return untrack(loadRuntime);
+  });
+
+  function loadRuntime() {
+    runtime = {};
+    runtimeLoading = false;
+    if (!runtimeRequestKey) return;
+    const [id, versions] = JSON.parse(runtimeRequestKey) as [string, string[]];
+    const c = byId.get(id);
+    if (!c) return;
+    let cancelled = false;
+    runtimeLoading = true;
+    api
+      .runtimeRequirements($state.snapshot(c), versions, $state.snapshot(options))
+      .then((list) => {
+        if (!cancelled) runtime = Object.fromEntries(list.map((r) => [r.version, r]));
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && (runtimeLoading = false));
+    return () => {
+      cancelled = true;
+    };
+  }
+
+  const currentRuntime = $derived(row?.component.version ? runtime[row.component.version] ?? null : null);
+
+  /** `20.19` と `18` のような版を比べる。 */
+  function compareVersions(a: string, b: string): number {
+    const pa = a.split('.').map(Number);
+    const pb = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+      if (d !== 0) return d;
+    }
+    return 0;
+  }
+
+  /** 現行より新しい実行環境が必要になるか。 */
+  function runtimeRaised(r: RuntimeRequirement | undefined): boolean {
+    const now = currentRuntime?.minimum;
+    return !!r?.minimum && (!now || compareVersions(r.minimum, now) > 0) && r.version !== row?.component.version;
+  }
+
+  function runtimeTitle(r: RuntimeRequirement): string {
+    const lines: string[] = [];
+    if (r.minimum) lines.push(t('detail.runtimeMin', { runtime: runtimeLabel, min: r.minimum }));
+    const target = runtimeEcosystem === 'npm' ? options.runtimeTargets.node : options.runtimeTargets.python;
+    if (r.targetOk === false) lines.push(t('detail.runtimeTargetBad', { runtime: runtimeLabel, version: target }));
+    if (r.error) lines.push(r.error);
+    return lines.join('\n');
   }
 
   const ORIGIN_LABEL: Record<string, MessageKey | null> = {
@@ -181,6 +260,7 @@
         {c.version ?? '—'}
         {#if v?.currentPublishedAt}<span class="muted">({date(v.currentPublishedAt)})</span>{/if}
         {#if currentJava}<span class="pill none">Java {currentJava}</span>{/if}
+        {#if currentRuntime?.constraint}<span class="pill {currentRuntime.targetOk === false ? 'danger' : 'none'}" title={runtimeTitle(currentRuntime)}>{runtimeLabel} {currentRuntime.constraint}</span>{/if}
       </dd>
       <dt>{t('detail.ecosystem')}</dt>
       <dd>{c.ecosystem}{c.scope ? ` / ${c.scope}` : ''}{c.direct === true ? ` / ${t('detail.direct')}` : c.direct === false ? ` / ${t('detail.transitive')}` : ''}</dd>
@@ -220,6 +300,15 @@
           <h4>{t('detail.seriesTitle')}</h4>
           <p class="muted small">
             {t('detail.seriesNote')}
+            {#if runtimeEcosystem}
+              {#if !runtimeSourceEnabled}
+                {t('detail.runtimeOffline', { runtime: runtimeLabel })}
+              {:else if runtimeLoading}
+                {t('detail.runtimeLoading')}
+              {:else}
+                {t('detail.runtimeNote', { runtime: runtimeLabel })}
+              {/if}
+            {/if}
             {#if c.ecosystem === 'maven'}
               {#if !mavenCentralEnabled}
                 {t('detail.javaOffline')}
@@ -231,7 +320,7 @@
             {/if}
           </p>
           <table class="compact">
-            <thead><tr><th>{t('common.series')}</th><th>{t('common.latest')}</th><th>{t('detail.published')}</th>{#if c.ecosystem === 'maven'}<th>{t('common.requiredJava')}</th>{/if}</tr></thead>
+            <thead><tr><th>{t('common.series')}</th><th>{t('common.latest')}</th><th>{t('detail.published')}</th>{#if c.ecosystem === 'maven'}<th>{t('common.requiredJava')}</th>{/if}{#if runtimeEcosystem}<th>{t('detail.requiredRuntime', { runtime: runtimeLabel })}</th>{/if}</tr></thead>
             <tbody>
               {#each v.series as s (s.series)}
                 {@const j = java[s.latest]}
@@ -240,10 +329,16 @@
                   <td class="mono">{s.latest}</td>
                   <td>{date(s.publishedAt)}</td>
                   {#if c.ecosystem === 'maven'}
-                    <td class="java-cell" class:warn={needsNewerJava(j?.java)} title={j ? originTitle(j) : ''}>
+                    <td class="java-cell" class:warn={needsNewerJava(j?.java)} class:danger={javaTargetBad(j?.java)} title={j ? [javaTargetBad(j.java) ? t('detail.javaTargetBad', { version: options.runtimeTargets.java }) : '', originTitle(j)].filter(Boolean).join('\n') : ''}>
                       {#if j?.java}Java {j.java}{#if needsNewerJava(j.java)} ↑{/if}{:else if j}<span class="muted small">{t('common.unknown')}</span>{:else if javaLoading}…{/if}
                       {#if j && originBadge(j)}<span class="origin">{originBadge(j)}</span>{/if}
                       <button class="link edit" title={t('detail.registerJavaTitle')} onclick={() => startManual(s.latest, s.series, j?.java ?? null)}>✎</button>
+                    </td>
+                  {/if}
+                  {#if runtimeEcosystem}
+                    {@const rr = runtime[s.latest]}
+                    <td class="mono small" class:warn={runtimeRaised(rr)} class:danger={rr?.targetOk === false} title={rr ? runtimeTitle(rr) : ''}>
+                      {#if rr?.constraint}{rr.constraint}{#if runtimeRaised(rr)} ↑{/if}{:else if rr?.error}<span class="muted">—</span>{:else if rr}<span class="muted">{t('detail.runtimeNone')}</span>{:else if runtimeLoading}…{/if}
                     </td>
                   {/if}
                 </tr>

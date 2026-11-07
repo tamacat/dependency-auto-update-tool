@@ -4,6 +4,7 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 
 - **最新バージョン**: 同じ系列（メジャー.マイナー）内の最新版、全体の最新版、系列ごとの最新版の一覧、更新の大きさ（パッチ／マイナー／メジャー）、非推奨かどうか、最終リリース日
 - **必要な Java**（Maven）: 系列ごとの最新版の jar から、実行に必要な Java を判定（logback 1.3 系は Java 8、1.4 系以降は Java 11 のように、系列で要件が変わるものを見分けるため）
+- **必要な Node.js・Python**（npm・PyPI）: 系列ごとの最新版がレジストリに宣言している範囲（npm の `engines.node`、PyPI の `requires_python`）。詳しくは「[使う実行環境](#使う実行環境)」
 - **脆弱性**: 既知の脆弱性（GHSA / CVE）、深刻度、CVSS スコア、修正済みバージョン
   - **悪用の状況**: 実際に悪用が確認されたもの（CISA KEV）と、30 日以内に悪用される確率の推定（EPSS）。一覧は「悪意あるパッケージ → KEV → 深刻度 → EPSS」の順に並ぶ
   - **悪意あるパッケージ**: OSV の `MAL-` で始まる報告（OpenSSF Malicious Packages）。深刻度は Critical として扱い、取り除くよう表示する
@@ -42,6 +43,8 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 | [EPSS](https://www.first.org/epss/api)（FIRST） | api.first.org | 悪用される確率の推定 | 脆弱性の CVE ID（URL） | 24 時間 |
 | [endoflife.date](https://endoflife.date/docs/api/v1/) | endoflife.date | サポート終了・サイクルごとの要件 | なし（製品一覧をまとめて取得し、照合は手元） | 7 日 |
 | Maven Central | repo1.maven.org | jar から必要な Java を判定（詳細画面を開いたとき、ナレッジに記録が無いものだけ） | groupId・artifactId・バージョン（URL）。jar は末尾と数クラス分だけ Range で部分取得 | ナレッジに記録 |
+| [npm レジストリ](https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md) | registry.npmjs.org | 必要な Node.js（詳細画面を開いたとき） | パッケージ名とバージョン（URL） | 30 日 |
+| [PyPI](https://docs.pypi.org/api/json/) | pypi.org | 必要な Python（詳細画面を開いたとき） | パッケージ名とバージョン（URL） | 30 日 |
 | ローカルの Maven | （mvn が設定に従って通信） | 「Maven で SBOM 生成」 | Maven の依存解決による通信。このツールの外で行われるため、ログには実行の開始・終了のみ | — |
 
 取得したデータは各サービスのライセンスに従います。アプリの「設定 → このソフトウェアについて」にも出典を表示しています。
@@ -54,6 +57,7 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 | CISA KEV | [CC0 1.0](https://github.com/cisagov/kev-data/blob/develop/LICENSE) |
 | EPSS | 無償で公開。利用時は出典の明記が求められている（[FAQ](https://www.first.org/epss/faq)） |
 | Maven Central | jar から判定した Java のバージョン（事実情報） |
+| npm レジストリ・PyPI | パッケージが宣言している実行環境の範囲（事実情報） |
 
 - 設定画面でデータソースごとに ON/OFF できます。OFF にしたデータソースへの通信は、HTTP 層で**送信前に遮断**し、遮断したこと自体も記録します。登録されていないホストへの通信も同様に遮断します。
 - キャッシュはアプリのキャッシュディレクトリ（Windows は `%LOCALAPPDATA%\org.tamacat.software-update-checker\http-cache.json`）に保存します。
@@ -113,6 +117,16 @@ EOL の製品特定は、①endoflife.date の purl 識別子との完全一致�
 }
 ```
 
+## 使う実行環境
+
+設定画面の「使う実行環境」に、使っている Java・Node.js・Python の版（`21`、`20.11`、`3.12` など）を書くと、詳細画面の「系列ごとの最新版」で、その版では動かない更新先を赤で示します。
+
+- 省略した部分は「その系列のどれか」とみなします（`20` と書けば 20.x の最新を使っている前提で判定）。
+- Node.js と Python は、endoflife.date でその版のサポート状況（サポート終了日）も表示します。Java は配布元（Temurin、Corretto など）ごとにサポート期間が違うため表示しません。
+- 範囲は npm の semver（`^`、`~`、`>=`、`||`、`1.x`、`14 - 16` など）と PEP 440（`>=`、`~=`、`!=3.0.*`、`,` など）のよく使われる書き方を読みます。読めない範囲はそのまま表示し、判定はしません。
+- npm・PyPI の要件はパッケージ自身の宣言なので、Java のようなナレッジファイルには記録しません。
+- 設定は「すべて既定に戻す」でも消えません（判定の設定ではなく、使っている環境の情報のため）。
+
 ## 表示設定
 
 設定画面の「表示」で、この端末での表示を変えられます（チェックの設定とは別に保存します）。
@@ -133,7 +147,7 @@ software-update-checker/
 └─ src-tauri/              バックエンド（Rust、ロジックはすべてこちら）
    ├─ src/model.rs         共通データモデル（フロントの lib/types.ts と対応）
    ├─ src/importers/       入力形式ごとの取り込み（Importer トレイト）
-   ├─ src/checks/          チェック種別ごとの処理（versions / supply / vulns / exploit / eol / java、CVSS 計算）
+   ├─ src/checks/          チェック種別ごとの処理（versions / supply / vulns / exploit / eol / java / runtime、CVSS 計算）
    ├─ src/sources.rs       データソース（通信先）の登録表
    ├─ src/http.rs          HTTP クライアント・通信先の許可制御・再試行・ファイルキャッシュ
    ├─ src/netguard.rs      流量制御（間隔・上限・繰り返し遮断・一時停止）

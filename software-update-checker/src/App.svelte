@@ -46,12 +46,19 @@
           network: { ...DEFAULT_NETWORK, ...(parsed.network ?? {}) },
           sharedKnowledgeFiles: Array.isArray(parsed.sharedKnowledgeFiles) ? parsed.sharedKnowledgeFiles : [],
           supplyChain: parsed.supplyChain ?? DEFAULT_OPTIONS.supplyChain,
+          runtimeTargets: { ...DEFAULT_OPTIONS.runtimeTargets, ...(parsed.runtimeTargets ?? {}) },
         };
       }
     } catch {
       /* 保存領域が使えなくても既定値で動かす */
     }
-    return { ...DEFAULT_OPTIONS, disabledSources: [], network: { ...DEFAULT_NETWORK }, sharedKnowledgeFiles: [] };
+    return {
+      ...DEFAULT_OPTIONS,
+      disabledSources: [],
+      network: { ...DEFAULT_NETWORK },
+      sharedKnowledgeFiles: [],
+      runtimeTargets: { ...DEFAULT_OPTIONS.runtimeTargets },
+    };
   }
 
   type View = 'list' | 'tree' | 'java' | 'log';

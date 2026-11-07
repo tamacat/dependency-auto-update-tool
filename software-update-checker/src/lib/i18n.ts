@@ -5,6 +5,21 @@
 import { prefs, type Locale } from './prefs.svelte';
 
 const ja = {
+  "detail.javaTargetBad": "設定した Java {version} では動きません",
+  "detail.requiredRuntime": "必要な {runtime}",
+  "detail.runtimeLoading": "必要な実行環境を確認中…",
+  "detail.runtimeMin": "{runtime} {min} 以上が必要",
+  "detail.runtimeNone": "指定なし",
+  "detail.runtimeNote": "{runtime} は各版がレジストリに宣言している範囲です（設定の「使う実行環境」で版を指定すると、合わない版を赤で示します）。",
+  "detail.runtimeOffline": "データソースが無効のため、必要な {runtime} は確認していません。",
+  "detail.runtimeTargetBad": "設定した {runtime} {version} では動きません",
+  "settings.runtimeEol": "{cycle} 系はサポート終了（{date}）",
+  "settings.runtimeJavaNote": "Java は配布元ごとにサポート期間が違うため、サポート状況は確認しません",
+  "settings.runtimeNoCycle": "endoflife.date に該当する系列がありません",
+  "settings.runtimeSupported": "{cycle} 系はサポート中",
+  "settings.runtimeUntil": "{cycle} 系はサポート中（〜{date}）",
+  "settings.runtimes": "使う実行環境",
+  "settings.runtimesNote": "使っている版を書くと、その版では動かない更新先を赤で示します。Node.js と Python は endoflife.date でサポート状況も確認します（この端末の設定として保存されます）。",
   "about.epssTerms": "無償で公開（利用時は出典の明記が求められています）",
   "cards.exploited": "悪用確認済み",
   "cards.malicious": "悪意あるパッケージ",
@@ -302,6 +317,21 @@ const ja = {
 export type MessageKey = keyof typeof ja;
 
 const en: Record<MessageKey, string> = {
+  "detail.javaTargetBad": "Does not run on the configured Java {version}",
+  "detail.requiredRuntime": "Required {runtime}",
+  "detail.runtimeLoading": "Checking runtime requirements…",
+  "detail.runtimeMin": "Requires {runtime} {min} or later",
+  "detail.runtimeNone": "not declared",
+  "detail.runtimeNote": "{runtime} shows the range each version declares in the registry (set your versions under \"Runtimes\" in the settings to mark incompatible ones in red).",
+  "detail.runtimeOffline": "The data source is disabled, so the required {runtime} is not checked.",
+  "detail.runtimeTargetBad": "Does not run on the configured {runtime} {version}",
+  "settings.runtimeEol": "{cycle} reached end of life ({date})",
+  "settings.runtimeJavaNote": "Support periods for Java differ by vendor, so they are not checked",
+  "settings.runtimeNoCycle": "No matching release cycle on endoflife.date",
+  "settings.runtimeSupported": "{cycle} is supported",
+  "settings.runtimeUntil": "{cycle} is supported (until {date})",
+  "settings.runtimes": "Runtimes",
+  "settings.runtimesNote": "Enter the versions you use to mark updates that do not run on them in red. Node.js and Python support status is checked on endoflife.date (saved as a setting on this device).",
   "about.epssTerms": "Published free of charge (attribution requested)",
   "cards.exploited": "Known exploited",
   "cards.malicious": "Malicious",

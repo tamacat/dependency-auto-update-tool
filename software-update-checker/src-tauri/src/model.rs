@@ -157,6 +157,17 @@ pub struct CheckOptions {
     /// OpenSSF Scorecard と来歴（SLSA provenance・attestation）を確認する。
     /// false なら、ライセンスが入力に無い部品のバージョン詳細だけを取る。
     pub supply_chain: bool,
+    /// 利用者が使っている実行環境の版。合わない更新先に警告を出す。
+    pub runtime_targets: RuntimeTargets,
+}
+
+/// 利用者が使っている実行環境の版（空なら未設定）。`21`、`20.11`、`3.12` のように書く。
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RuntimeTargets {
+    pub java: String,
+    pub node: String,
+    pub python: String,
 }
 
 impl Default for CheckOptions {
@@ -169,6 +180,7 @@ impl Default for CheckOptions {
             network: crate::netguard::NetworkSettings::default(),
             shared_knowledge_files: Vec::new(),
             supply_chain: true,
+            runtime_targets: RuntimeTargets::default(),
         }
     }
 }
@@ -244,6 +256,35 @@ pub struct JavaRequirement {
     pub rule_scope: Option<String>,
     /// 共有ナレッジのファイル
     pub origin_file: Option<String>,
+}
+
+/// そのバージョンの実行に必要な実行環境（npm の `engines.node`、PyPI の `requires_python`）。
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeRequirement {
+    pub version: String,
+    /// `node` / `python`
+    pub runtime: String,
+    /// 宣言された範囲そのまま（`^20.19 || >=22`、`>=3.8` など）。宣言が無ければ `None`
+    pub constraint: Option<String>,
+    /// 範囲の下限（`20.19`、`3.8` など）。下限が無い・読めなければ `None`
+    pub minimum: Option<String>,
+    /// 設定した実行環境の版が範囲に入るか。未設定や範囲を読めないときは `None`
+    pub target_ok: Option<bool>,
+    /// 取得できなかった理由
+    pub error: Option<String>,
+}
+
+/// 設定した実行環境のサポート状況（endoflife.date）。
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeStatus {
+    /// `java` / `node` / `python`
+    pub runtime: String,
+    pub version: String,
+    /// endoflife.date の製品が対応しない（Java は配布元ごとに違うため調べない）か、取得できなければ `None`
+    pub eol: Option<EolInfo>,
+    pub error: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]

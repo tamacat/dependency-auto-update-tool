@@ -7,14 +7,16 @@
 //! - [`exploit`] — 悪用の確認（CISA KEV）と悪用されそうな度合い（EPSS）
 //! - [`eol`] — サポート終了と系列ごとの要件（endoflife.date）
 //! - [`java`] — jar から必要な Java を判定（Maven Central、詳細画面から個別に呼ぶ）
+//! - [`runtime`] — npm・PyPI が宣言する必要な Node.js・Python（詳細画面から個別に呼ぶ）
 //!
 //! 新しいチェック（ライセンス判定、社内リポジトリの照会など）を足すときは、
 //! モジュールを追加して [`run_checks`] から呼ぶ。
 
 mod cvss;
-mod eol;
+pub mod eol;
 mod exploit;
 pub mod java;
+pub mod runtime;
 mod supply;
 mod versions;
 mod vulns;
