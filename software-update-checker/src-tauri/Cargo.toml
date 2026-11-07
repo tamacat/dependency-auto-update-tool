@@ -24,6 +24,8 @@ serde_json = "1"
 # OS の TLS ライブラリに依存しないよう rustls を使う
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 roxmltree = "0.20"
+# poetry.lock・uv.lock・pyproject.toml の読み込み。tauri の依存に既に含まれている
+toml = { version = "1", default-features = false, features = ["std", "serde", "parse"] }
 tokio = { version = "1", features = ["sync", "rt", "time"] }
 # jar 内のクラスファイル（deflate）の展開。tauri の依存に既に含まれている
 miniz_oxide = "0.8"

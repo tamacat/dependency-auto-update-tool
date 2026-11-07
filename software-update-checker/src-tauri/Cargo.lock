@@ -3458,6 +3458,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-opener",
  "tokio",
+ "toml 1.1.6+spec-1.1.0",
 ]
 
 [[package]]

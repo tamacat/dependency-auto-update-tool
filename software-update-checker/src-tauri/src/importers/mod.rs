@@ -1,12 +1,14 @@
 //! 入力ファイルの取り込み。
 //!
 //! 入力形式ごとに [`Importer`] を実装し、[`registry`] に登録する。
-//! 新しい形式（package-lock.json、requirements.txt、Gradle など）に対応するときは、
+//! 新しい形式（Gradle、Cargo.lock など）に対応するときは、
 //! このディレクトリにモジュールを追加して `registry` に足すだけでよい。
 
 mod cyclonedx;
 pub mod maven;
+mod npm;
 mod pom;
+mod python;
 mod spdx;
 
 use crate::model::{Component, Ecosystem, ImportResult};
@@ -27,6 +29,10 @@ pub fn registry() -> Vec<Box<dyn Importer>> {
         Box::new(cyclonedx::CycloneDxJsonImporter),
         Box::new(cyclonedx::CycloneDxXmlImporter),
         Box::new(spdx::SpdxJsonImporter),
+        Box::new(npm::PackageLockImporter),
+        Box::new(python::RequirementsImporter),
+        Box::new(python::PoetryLockImporter),
+        Box::new(python::UvLockImporter),
     ]
 }
 
@@ -41,8 +47,8 @@ pub fn import_file(path: &Path) -> Result<ImportResult, String> {
         }
     }
     Err(tr!(
-        "{} は対応していない形式です（対応形式: pom.xml / CycloneDX JSON・XML / SPDX JSON）",
-        "{} is not a supported format (supported: pom.xml / CycloneDX JSON, XML / SPDX JSON)",
+        "{} は対応していない形式です（対応形式: pom.xml / CycloneDX JSON・XML / SPDX JSON / package-lock.json / requirements.txt / poetry.lock / uv.lock）",
+        "{} is not a supported format (supported: pom.xml / CycloneDX JSON, XML / SPDX JSON / package-lock.json / requirements.txt / poetry.lock / uv.lock)",
         path.display()
     ))
 }

@@ -101,7 +101,7 @@
     rows.filter((r) => {
       const c = r.component;
       if (directOnly && c.direct === false) return false;
-      if (hideTest && c.scope === 'test') return false;
+      if (hideTest && (c.scope === 'test' || c.scope === 'dev')) return false;
       if (filter !== 'all' && !is[filter](r)) return false;
       if (query) {
         const q = query.toLowerCase();
@@ -155,7 +155,7 @@
       multiple: false,
       directory: false,
       filters: [
-        { name: 'pom.xml / SBOM', extensions: ['xml', 'json', 'pom'] },
+        { name: 'pom.xml / SBOM / lock', extensions: ['xml', 'json', 'pom', 'lock', 'txt'] },
         { name: t('dialog.allFiles'), extensions: ['*'] },
       ],
     });

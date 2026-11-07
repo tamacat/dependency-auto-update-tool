@@ -23,8 +23,12 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 | pom.xml →「Maven で SBOM 生成」 | あり | ローカルの `mvn` で `cyclonedx-maven-plugin` を実行し、生成された SBOM を取り込む。対象プロジェクトの pom.xml は変更しない（出力先は `target/software-update-checker-bom.json`） |
 | CycloneDX JSON / XML | あり | `dependencies` があれば直接依存／推移的依存を判定 |
 | SPDX 2.x JSON | あり | `relationships` の DEPENDS_ON / DEPENDENCY_OF などから判定 |
+| package-lock.json / npm-shrinkwrap.json | あり | lockfileVersion 1〜3。v2 以降はルートとワークスペースの依存を直接依存とする。v1 は同じ場所の package.json から判定。同じ名前・版は 1 つにまとめる。`dev` / `optional` / `peer` は範囲（scope）に表示 |
+| requirements.txt / constraints.txt | pip-compile の出力ならあり | `==` で固定した版だけ脆弱性を照会する。`# via` の注記があれば依存関係と直接依存を判定。`-r` で読み込む別ファイルは辿らない |
+| poetry.lock | あり | 直接依存は同じ場所の pyproject.toml（`[project]`、`[tool.poetry]`、`[dependency-groups]`）から判定。main 以外のグループは範囲に表示 |
+| uv.lock | あり | ワークスペースの部品（editable / virtual）の依存を直接依存とする。実行時の依存から辿れないものは `dev` |
 
-ファイルはウィンドウへのドラッグ＆ドロップか、「ファイルを開く」で読み込みます。
+ファイルはウィンドウへのドラッグ＆ドロップか、「ファイルを開く」で読み込みます。ローカルのパスや git から入れたパッケージは一覧に出しますが、レジストリの版ではないため脆弱性は照会しません。一覧の「テスト・開発用を除く」で、`test` と `dev` の範囲を隠せます。
 
 ## データソース（通信先）
 
@@ -154,7 +158,7 @@ CSP 違反がないかは、模擬バックエンド入りのビルド（`npm ru
 
 ### 対応を広げるとき
 
-- **入力形式を足す**（package-lock.json、requirements.txt、Gradle など）: `src-tauri/src/importers/` に `Importer` トレイトの実装を追加し、`importers::registry()` に登録します。
+- **入力形式を足す**（Gradle、Cargo.lock、pnpm-lock.yaml など）: `src-tauri/src/importers/` に `Importer` トレイトの実装を追加し、`importers::registry()` に登録します。
 - **エコシステムを足す**: `model::Ecosystem` に値を追加し、purl の type と deps.dev の system 名との対応を書きます。最新版・脆弱性チェックは purl ベースなので、多くの場合それだけで動きます。
 - **チェックを足す**（ライセンス判定、社内リポジトリ照会など）: `src-tauri/src/checks/` にモジュールを追加し、`checks::run_checks` から呼びます。結果は `model::CheckResult` に項目を追加します。新しい通信先を使う場合は `sources.rs` への登録が必須です（登録しないと遮断されます）。
 
