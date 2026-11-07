@@ -1,6 +1,7 @@
 //! フロントエンドから `invoke` で呼べるコマンド。
 
 use crate::activity::LogEntry;
+use crate::tr;
 use crate::checks;
 use crate::http::Http;
 use crate::importers;

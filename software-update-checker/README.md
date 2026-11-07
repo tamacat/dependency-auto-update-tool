@@ -15,6 +15,8 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 
 一覧表示のほか、依存関係のツリー表示（絞り込み時は該当する部品へ至る経路だけを表示）ができます。
 
+CI 向けのコマンドライン版（`software-update-checker-cli`）もあり、方針に当たる指摘で CI を止めたり、結果を SARIF で GitHub の Code scanning に出したりできます（「[CI で使う](#ci-で使うコマンドライン版)」）。
+
 同じリポジトリにある Java 製 CLI（`dependency-auto-update-tool`）とは独立したサブプロジェクトで、コードは共有していません。
 
 ## 対応入力
@@ -34,7 +36,7 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 
 ## データソース（通信先）
 
-このツールが通信するのは、[`src-tauri/src/sources.rs`](src-tauri/src/sources.rs) に登録した次の接続先だけです。すべて API キー不要です。
+このツールが通信するのは、[`src-tauri/core/src/sources.rs`](src-tauri/core/src/sources.rs) に登録した次の接続先だけです。すべて API キー不要です。
 
 | データソース | 接続先 | 用途 | 送信される情報 | キャッシュ期間 |
 |---|---|---|---|---|
@@ -66,7 +68,7 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 
 ### 通信の制限（相手のサービスに負荷をかけないために）
 
-すべての送信は [`src-tauri/src/netguard.rs`](src-tauri/src/netguard.rs) の流量制御を通ります。設定画面の「通信」で変更できますが、下表の範囲を超える値は自動で範囲内に丸めます。
+すべての送信は [`src-tauri/core/src/netguard.rs`](src-tauri/core/src/netguard.rs) の流量制御を通ります。設定画面の「通信」で変更できますが、下表の範囲を超える値は自動で範囲内に丸めます。
 
 | 項目 | 既定 | 範囲 |
 |---|---|---|
@@ -90,11 +92,11 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
 - 画面の「通信ログ」タブで、データソースごとの件数・受信量と、記録の一覧をリアルタイムに確認できます。
 - ファイルはアプリのログディレクトリ（Windows は `%LOCALAPPDATA%\org.tamacat.software-update-checker\logs\`）に、日別の JSON Lines（`activity-YYYY-MM-DD.jsonl`、日付は UTC）で追記します。30 日より古いファイルは起動時に削除します。
 
-EOL の製品特定は、①endoflife.date の purl 識別子との完全一致、②同梱の対応表 [`src-tauri/resources/eol-mapping.json`](src-tauri/resources/eol-mapping.json)、③同じ namespace（groupId）を持つ製品が 1 つだけならその製品、の順に行います。②③で特定したものは画面に「推定」と表示します。
+EOL の製品特定は、①endoflife.date の purl 識別子との完全一致、②同梱の対応表 [`src-tauri/core/resources/eol-mapping.json`](src-tauri/core/resources/eol-mapping.json)、③同じ namespace（groupId）を持つ製品が 1 つだけならその製品、の順に行います。②③で特定したものは画面に「推定」と表示します。
 
 ## Java 要件のナレッジ
 
-「どのライブラリのどのバージョンにどの Java が必要か」を JSON ファイルに記録し、使い回します（[`src-tauri/src/knowledge.rs`](src-tauri/src/knowledge.rs)）。
+「どのライブラリのどのバージョンにどの Java が必要か」を JSON ファイルに記録し、使い回します（[`src-tauri/core/src/knowledge.rs`](src-tauri/core/src/knowledge.rs)）。
 
 - **自動記録**: 詳細画面で Maven の部品を開くと、系列ごとの最新版の jar から必要な Java を判定し、手元のファイル（Windows は `%APPDATA%\org.tamacat.software-update-checker\java-requirements.json`）に `source: "jar"` で記録します。次からは通信せずに記録から答えます。
 - **手動記録**: 詳細画面の ✎、または「Java 要件」タブから登録します。バージョン単位のほか、系列（`series: "1.4"` → 1.4.x すべて）や groupId 全体（`artifact: "*"`）にも当てはめられ、理由や出典をメモに残せます。手動記録は自動判定や取り込みで上書きされません。
@@ -136,7 +138,7 @@ EOL の製品特定は、①endoflife.date の purl 識別子との完全一致�
 - **文字サイズ**: 85%〜150%。
 - **タイムゾーン**: OS の設定に従うか、IANA のタイムゾーン名（`Asia/Tokyo`、`UTC` など）を指定します。通信ログの時刻や公開日・記録日の表示に使います。ログファイルとナレッジファイルには常に UTC で記録します。
 
-言語を足すときは、画面は [`src/lib/i18n.ts`](src/lib/i18n.ts) に辞書を、バックエンドは [`src-tauri/src/i18n.rs`](src-tauri/src/i18n.rs) と `tr!` の呼び出しに訳を追加します。
+言語を足すときは、画面は [`src/lib/i18n.ts`](src/lib/i18n.ts) に辞書を、バックエンドは [`src-tauri/core/src/i18n.rs`](src-tauri/core/src/i18n.rs) と `tr!` の呼び出しに訳を追加します。
 
 ## 構成
 
@@ -145,17 +147,20 @@ software-update-checker/
 ├─ src/                    フロントエンド（Svelte 5 + TypeScript、表示のみ）
 │  ├─ App.svelte           画面全体・状態管理
 │  └─ lib/                 一覧・詳細・集計カード・設定ダイアログ、型定義、CSV/JSON 出力
-└─ src-tauri/              バックエンド（Rust、ロジックはすべてこちら）
-   ├─ src/model.rs         共通データモデル（フロントの lib/types.ts と対応）
-   ├─ src/importers/       入力形式ごとの取り込み（Importer トレイト）
-   ├─ src/checks/          チェック種別ごとの処理（versions / supply / vulns / exploit / eol / java / runtime / transitive、CVSS 計算）
-   ├─ src/sources.rs       データソース（通信先）の登録表
-   ├─ src/http.rs          HTTP クライアント・通信先の許可制御・再試行・ファイルキャッシュ
-   ├─ src/netguard.rs      流量制御（間隔・上限・繰り返し遮断・一時停止）
-   ├─ src/knowledge.rs     Java 要件のナレッジファイル
-   ├─ src/activity.rs      通信・操作ログ
-   ├─ src/i18n.rs          表示言語の切り替え（tr! マクロ）
-   └─ src/commands.rs      フロントから呼べるコマンド
+└─ src-tauri/              バックエンド（Rust のワークスペース。ロジックはすべてこちら）
+   ├─ src/                 GUI（Tauri）: 起動処理と、フロントから呼べるコマンド（commands.rs）
+   ├─ core/                取り込みとチェックの処理（GUI と CLI で共通。Tauri に依存しない）
+   │  ├─ src/model.rs      共通データモデル（フロントの lib/types.ts と対応）
+   │  ├─ src/importers/    入力形式ごとの取り込み（Importer トレイト）
+   │  ├─ src/checks/       チェック種別ごとの処理（versions / supply / vulns / exploit / eol / java / runtime / transitive、CVSS 計算）
+   │  ├─ src/policy.rs     CI 向けの判定方針（--fail-on）
+   │  ├─ src/sources.rs    データソース（通信先）の登録表
+   │  ├─ src/http.rs       HTTP クライアント・通信先の許可制御・再試行・ファイルキャッシュ
+   │  ├─ src/netguard.rs   流量制御（間隔・上限・繰り返し遮断・一時停止）
+   │  ├─ src/knowledge.rs  Java 要件のナレッジファイル
+   │  ├─ src/activity.rs   通信・操作ログ
+   │  └─ src/i18n.rs       表示言語の切り替え（tr! マクロ）
+   └─ cli/                 CI 向けのコマンドライン版（引数の解析と、テキスト・JSON・SARIF の出力）
 ```
 
 ### セキュリティ上の設計
@@ -173,9 +178,63 @@ CSP 違反がないかは、模擬バックエンド入りのビルド（`npm ru
 
 ### 対応を広げるとき
 
-- **入力形式を足す**（Gradle、Cargo.lock、pnpm-lock.yaml など）: `src-tauri/src/importers/` に `Importer` トレイトの実装を追加し、`importers::registry()` に登録します。
+- **入力形式を足す**（Gradle、Cargo.lock、pnpm-lock.yaml など）: `src-tauri/core/src/importers/` に `Importer` トレイトの実装を追加し、`importers::registry()` に登録します。
 - **エコシステムを足す**: `model::Ecosystem` に値を追加し、purl の type と deps.dev の system 名との対応を書きます。最新版・脆弱性チェックは purl ベースなので、多くの場合それだけで動きます。
-- **チェックを足す**（ライセンス判定、社内リポジトリ照会など）: `src-tauri/src/checks/` にモジュールを追加し、`checks::run_checks` から呼びます。結果は `model::CheckResult` に項目を追加します。新しい通信先を使う場合は `sources.rs` への登録が必須です（登録しないと遮断されます）。
+- **チェックを足す**（ライセンス判定、社内リポジトリ照会など）: `src-tauri/core/src/checks/` にモジュールを追加し、`checks::run_checks` から呼びます。結果は `model::CheckResult` に項目を追加します。新しい通信先を使う場合は `sources.rs` への登録が必須です（登録しないと遮断されます）。
+
+## CI で使う（コマンドライン版）
+
+`software-update-checker-cli` は、GUI と同じ取り込みとチェックを画面なしで行うコマンドライン版です。方針（`--fail-on`）に当たる指摘があれば終了コード 1 で終わるので、CI でビルドを止められます。Tauri に依存しないため、WebKit や GTK の無い CI のマシンでも動きます。Release に Windows・macOS・Linux 用の実行ファイルを添付しています。
+
+```bash
+software-update-checker-cli package-lock.json
+```
+
+```bash
+software-update-checker-cli bom.json --format sarif --output results.sarif --fail-on malicious,kev,high
+```
+
+| オプション | 内容 |
+|---|---|
+| `--format text\|json\|sarif` | 出力形式（既定は text）。SARIF は GitHub の Code scanning に取り込める |
+| `-o`, `--output <file>` | ファイルに書く（既定は標準出力。要約は標準エラーに出す） |
+| `--fail-on <rules>` | 失敗とする規則（既定は `malicious,kev,critical`）。`malicious`・`kev`・`critical`・`high`・`medium`・`low`・`any`（すべての脆弱性）・`eol`・`deprecated`・`none` |
+| `--ignore <ids>` | 無視する脆弱性の ID（GHSA・CVE など。別名でも一致） |
+| `--direct-only` | 直接依存だけを判定する |
+| `--no-fail` | 報告だけ（常に終了コード 0） |
+| `--supply-chain` | OpenSSF Scorecard と来歴も取得する（既定は取得しない） |
+| `--disable-source <ids>` | 通信しないデータソース（`deps.dev`・`osv`・`cisa-kev`・`epss`・`endoflife.date`） |
+| `--cache <file>` | HTTP のキャッシュファイル（CI のキャッシュと組み合わせると通信を減らせる） |
+| `--lang en\|ja` | メッセージの言語（既定は en） |
+| `-v`, `--verbose` | 進み具合と通信を標準エラーに出す |
+
+終了コード: 0 = 方針に当たる指摘なし、1 = 方針に当たる指摘あり、2 = 引数や入力の誤り。
+
+SARIF には、脆弱性ごとの規則（GitHub が深刻度の判定に使う `security-severity` 付き）と、入力ファイルの中で部品が出てくる行、直せる更新先を書きます。サポート終了（`end-of-life`）と非推奨（`deprecated-package`）も規則として出します。
+
+GitHub Actions で Code scanning に結果を出す例（`v0.3.0` と SHA は使う版に置き換え、ダウンロードしたファイルは `gh attestation verify` で確かめる）:
+
+```yaml
+permissions:
+  contents: read
+  security-events: write # Code scanning への結果の書き込み
+steps:
+  - uses: actions/checkout@<SHA> # v5
+  - name: Download software-update-checker-cli
+    env:
+      GH_TOKEN: ${{ github.token }}
+    run: |
+      gh release download v0.3.0 --repo tamacat/dependency-auto-update-tool \
+        --pattern 'software-update-checker-cli_*_linux-x64' --output suc
+      gh attestation verify suc --repo tamacat/dependency-auto-update-tool
+      chmod +x suc
+  - name: Check dependencies
+    run: ./suc package-lock.json --format sarif --output results.sarif
+  - uses: github/codeql-action/upload-sarif@<SHA> # v4
+    if: always() # 方針に当たって失敗しても、結果は Code scanning に送る
+    with:
+      sarif_file: results.sarif
+```
 
 ## 開発
 
@@ -219,7 +278,7 @@ npm run tauri build -- --no-bundle
 テストと型チェック:
 
 ```bash
-cd src-tauri && cargo test
+cd src-tauri && cargo test --workspace
 ```
 
 ```bash
@@ -233,7 +292,7 @@ npm run check
 模擬データ `src/lib/fixtures/sample.json` は、実際のチェック結果を保存したものです。次のコマンドで作り直せます（`SUC_LIVE_INPUT` に取り込みたい pom.xml や SBOM のパスを指定）。
 
 ```bash
-cd src-tauri && SUC_LIVE_INPUT=path/to/pom.xml SUC_LIVE_DUMP=../src/lib/fixtures/sample.json cargo test live -- --ignored
+cd src-tauri && SUC_LIVE_INPUT=path/to/pom.xml SUC_LIVE_DUMP=../../src/lib/fixtures/sample.json cargo test -p software-update-checker-core live_check -- --ignored
 ```
 
 ### アイコン
@@ -266,7 +325,7 @@ npm run notices
 
 テスト（画面の型チェック、Rust のテスト、CLI の `mvn verify`）は [`.github/workflows/test.yml`](../.github/workflows/test.yml) にまとめてあり、プルリクエストと main への push のたびに実行されます。リリースのときも同じものを呼び出します。
 
-1. 版番号を `package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` の 3 か所でそろえて更新し、コミットする（第三者ライセンスは `npm run notices` で作り直す）。
+1. 版番号を `package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`（`[workspace.package]` の `version`。GUI・core・CLI で共通）の 3 か所でそろえて更新し、コミットする（第三者ライセンスは `npm run notices` で作り直す）。
 2. 同じ版番号のタグを付けて push する。
 
    ```bash

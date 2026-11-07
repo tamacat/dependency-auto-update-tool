@@ -481,7 +481,7 @@ mod tests {
 
     #[test]
     fn bundled_example_is_valid_and_answers_logback_series() {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../examples/java-requirements.example.json");
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/java-requirements.example.json");
         let file = KnowledgeFile::read(&path).unwrap();
         assert!(file.entries.iter().all(|r| validate(r).is_ok()));
         let shared = vec![SharedFile { path: "example".into(), entries: file.entries, error: None }];

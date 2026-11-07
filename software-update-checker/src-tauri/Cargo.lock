@@ -3448,15 +3448,34 @@ dependencies = [
 name = "software-update-checker"
 version = "0.2.0"
 dependencies = [
+ "serde",
+ "serde_json",
+ "software-update-checker-core",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "tokio",
+]
+
+[[package]]
+name = "software-update-checker-cli"
+version = "0.2.0"
+dependencies = [
+ "serde_json",
+ "software-update-checker-core",
+ "tokio",
+]
+
+[[package]]
+name = "software-update-checker-core"
+version = "0.2.0"
+dependencies = [
  "miniz_oxide 0.8.9",
  "reqwest 0.12.28",
  "roxmltree",
  "serde",
  "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
  "tokio",
  "toml 1.1.6+spec-1.1.0",
 ]

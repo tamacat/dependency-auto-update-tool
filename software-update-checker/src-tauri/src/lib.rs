@@ -1,23 +1,13 @@
-//! Software Update Checker のバックエンド。
+//! Software Update Checker のバックエンド（GUI）。
 //!
 //! フロントエンド（WebView）は表示だけを担当し、ファイル読込・外部 API 呼び出し・
 //! 判定ロジックはすべてこちらで行う。フロントから呼べるのは [`commands`] の関数だけ。
 //! 外部への通信は [`http::Http`] に集約し、[`sources`] に登録した先にしか行わない。
 
-// tr! マクロを後続のモジュールで使えるよう最初に読み込む
-#[macro_use]
-mod i18n;
-mod activity;
-mod checks;
+// 取り込みとチェックの処理は core（Tauri に依存しない共通部分）にある
+pub(crate) use software_update_checker_core::{activity, checks, http, i18n, importers, knowledge, model, sources, tr};
+
 mod commands;
-mod http;
-mod importers;
-mod knowledge;
-mod model;
-mod netguard;
-mod purl;
-mod sources;
-mod version;
 
 use std::sync::Arc;
 use tauri::{Emitter, Manager};

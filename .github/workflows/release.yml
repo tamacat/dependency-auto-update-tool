@@ -47,7 +47,8 @@ jobs:
           cd software-update-checker
           pkg=$(node -p "require('./package.json').version")
           conf=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          cargo=$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/.*"(.*)"/\1/')
+          # 版番号は [workspace.package] の version = "…"（各パッケージは version.workspace = true）
+          cargo=$(grep -m1 '^version = ' src-tauri/Cargo.toml | sed -E 's/.*"(.*)"/\1/')
           echo "tag=$tag package.json=$pkg tauri.conf.json=$conf Cargo.toml=$cargo"
           if [ "$tag" != "$pkg" ] || [ "$tag" != "$conf" ] || [ "$tag" != "$cargo" ]; then
             echo "::error::The tag v$tag does not match the version in package.json, tauri.conf.json and Cargo.toml"
@@ -113,6 +114,8 @@ jobs:
         run: |
           npm ci
           npm run tauri build -- --target "$TARGET"
+          # CI 向けのコマンドライン版（Tauri に依存しない）
+          cargo build --release --locked --manifest-path src-tauri/Cargo.toml -p software-update-checker-cli --target "$TARGET"
 
       - name: Collect the files to release
         shell: bash
@@ -137,20 +140,26 @@ jobs:
             fi
             cp "${files[0]}" "$out/$2"
           }
+          cli="software-update-checker-cli_${version}_${PLATFORM}"
           case "$PLATFORM" in
             windows-*)
               # インストーラーなしで使える実行ファイル単体と、インストーラー（NSIS / MSI）
               one "$release/software-update-checker.exe" "${name}.exe"
               one "$release/bundle/nsis/*.exe" "${name}-setup.exe"
               one "$release/bundle/msi/*.msi" "${name}.msi"
+              one "$release/software-update-checker-cli.exe" "${cli}.exe"
+              # コマンドライン版は第三者ライセンスを画面で見られないので、別ファイルとして添付する
+              one "THIRD-PARTY-NOTICES.txt" "software-update-checker_${version}_THIRD-PARTY-NOTICES.txt"
               ;;
             macos-*)
               one "$release/bundle/dmg/*.dmg" "${name}.dmg"
+              one "$release/software-update-checker-cli" "${cli}"
               ;;
             linux-*)
               one "$release/bundle/appimage/*.AppImage" "${name}.AppImage"
               one "$release/bundle/deb/*.deb" "${name}.deb"
               one "$release/bundle/rpm/*.rpm" "${name}.rpm"
+              one "$release/software-update-checker-cli" "${cli}"
               ;;
           esac
           ls -la "$out"
@@ -234,7 +243,9 @@ jobs:
           | \`*_windows-x64-setup.exe\` / \`*_windows-x64.msi\` | Windows 用インストーラー / Windows installers |
           | \`*_macos-arm64.dmg\` / \`*_macos-x64.dmg\` | macOS 用（Apple Silicon / Intel） |
           | \`*_linux-x64.AppImage\` / \`.deb\` / \`.rpm\` | Linux 用 |
-          | \`dependency-auto-update-tool-*.jar\` | コマンドライン版（JDK 25 以降） |
+          | \`software-update-checker-cli_*\` | CI 向けのコマンドライン版（Windows / macOS / Linux）。SARIF を出力し、方針に当たる指摘があれば終了コード 1 / Command-line version for CI (SARIF output, exits with 1 on policy violations) |
+          | \`*_THIRD-PARTY-NOTICES.txt\` | 第三者ライセンス / Third-party licenses |
+          | \`dependency-auto-update-tool-*.jar\` | 依存の自動更新ツール（Maven、JDK 25 以降）/ Dependency auto-update tool (Maven, JDK 25+) |
 
           コード署名はしていません。Windows では SmartScreen、macOS では Gatekeeper の警告が出ることがあります。
           These binaries are not code-signed yet; Windows SmartScreen / macOS Gatekeeper may warn on first launch.

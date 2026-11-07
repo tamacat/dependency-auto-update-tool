@@ -1,0 +1,18 @@
+[package]
+name = "software-update-checker-cli"
+version.workspace = true
+description = "Software Update Checker のコマンドライン版（CI 向け）"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[[bin]]
+name = "software-update-checker-cli"
+path = "src/main.rs"
+
+[dependencies]
+software-update-checker-core = { path = "../core" }
+serde_json = "1"
+tokio = { version = "1", features = ["rt"] }

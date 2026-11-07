@@ -36,7 +36,8 @@ pub struct LogEntry {
     pub message: Option<String>,
 }
 
-type Sink = Box<dyn Fn(&LogEntry) + Send + Sync>;
+/// 記録のたびに呼ばれる関数（画面への通知や、CLI の標準エラーへの表示）
+pub type Sink = Box<dyn Fn(&LogEntry) + Send + Sync>;
 
 pub struct ActivityLog {
     dir: Option<PathBuf>,
