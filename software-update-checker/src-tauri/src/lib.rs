@@ -55,6 +55,7 @@ pub fn run() {
             commands::java_requirements,
             commands::runtime_requirements,
             commands::runtime_status,
+            commands::transitive_fix,
             commands::knowledge_list,
             commands::knowledge_upsert,
             commands::knowledge_delete,

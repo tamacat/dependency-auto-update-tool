@@ -5,7 +5,17 @@
   import { openExternal } from './external';
   import { date, displayName, percent, severityLabel, updateLabel } from './format';
   import { t, type MessageKey } from './i18n';
-  import type { CheckOptions, Component, FixAdvice, JavaRequirement, JavaRule, KevInfo, Row, RuntimeRequirement } from './types';
+  import type {
+    CheckOptions,
+    Component,
+    FixAdvice,
+    JavaRequirement,
+    JavaRule,
+    KevInfo,
+    Row,
+    RuntimeRequirement,
+    TransitiveFix,
+  } from './types';
 
   let {
     row,
@@ -223,6 +233,49 @@
     return list;
   }
 
+  // ---- 推移的依存の直し方（通信が多いので、ボタンを押したときだけ調べる）
+  let transitive = $state<TransitiveFix | null>(null);
+  let transitiveLoading = $state(false);
+  let transitiveError = $state<string | null>(null);
+  const transitiveFor = $derived(row?.component.id ?? null);
+  // 別の部品を選んだら結果を消す
+  $effect(() => {
+    transitiveFor;
+    untrack(() => {
+      transitive = null;
+      transitiveError = null;
+      transitiveLoading = false;
+    });
+  });
+
+  async function loadTransitive() {
+    if (!row?.result) return;
+    const target = row.component;
+    const ids = row.result.vulnerabilities.filter((v) => !v.malicious).map((v) => v.id);
+    const hint = row.result.fix?.inSeries ?? row.result.fix?.minimum ?? null;
+    transitiveLoading = true;
+    transitiveError = null;
+    try {
+      const result = await api.transitiveFix(
+        $state.snapshot(target),
+        $state.snapshot(components),
+        ids,
+        hint,
+        $state.snapshot(options),
+      );
+      if (row?.component.id === target.id) transitive = result;
+    } catch (e) {
+      transitiveError = String(e);
+    } finally {
+      transitiveLoading = false;
+    }
+  }
+
+  const nameOf = (id: string) => {
+    const c = byId.get(id);
+    return c ? `${c.name}${c.version ? ` ${c.version}` : ''}` : id;
+  };
+
   function kevTitle(k: KevInfo): string {
     const lines = [t('detail.kevTitle', { date: date(k.dateAdded) || '—', due: date(k.dueDate) || '—' })];
     if (k.ransomware) lines.push(t('detail.kevRansomware'));
@@ -387,6 +440,47 @@
             {/if}
           </dd>
         </dl>
+      {/if}
+      {#if row.result.vulnerabilities.some((v) => !v.malicious) && c.direct !== true && dependents.length}
+        <div class="transitive">
+          <div class="small"><b>{t('detail.transitiveTitle')}</b></div>
+          {#if !transitive}
+            <div class="row">
+              <button onclick={loadTransitive} disabled={transitiveLoading}>
+                {transitiveLoading ? t('detail.transitiveLoading') : t('detail.transitiveRun')}
+              </button>
+            </div>
+            <div class="muted small">{t('detail.transitiveNote')}</div>
+            {#if transitiveError}<div class="warn small">{transitiveError}</div>{/if}
+          {:else}
+            {#if transitive.paths.length === 0}
+              <div class="muted small">{t('detail.transitiveNoPath')}</div>
+            {:else}
+              <ul class="paths small">
+                {#each transitive.paths as path}
+                  <li class="mono">{path.map(nameOf).join(' → ')}</li>
+                {/each}
+              </ul>
+            {/if}
+            {#each transitive.routes as route (route.directId)}
+              {@const direct = byId.get(route.directId)?.name ?? route.directId}
+              <div class="small route">
+                {#if route.fixVersion && route.targetVersion}
+                  <span class="ok">✓</span>
+                  {t('detail.transitiveFixed', { direct, version: route.fixVersion, target: c.name, targetVersion: route.targetVersion })}
+                {:else if route.fixVersion}
+                  <span class="ok">✓</span>
+                  {t('detail.transitiveRemoved', { direct, version: route.fixVersion, target: c.name })}
+                {:else}
+                  <span class="warn">{t('detail.transitiveNoFix', { direct })}</span>
+                  {#if route.error}<span class="muted">（{route.error}）</span>{/if}
+                {/if}
+              </div>
+            {/each}
+            {#if transitive.routes.length}<div class="muted small">{t('detail.transitiveEstimate')}</div>{/if}
+            {#if transitive.pinHint}<div class="muted small">{transitive.pinHint}</div>{/if}
+          {/if}
+        </div>
       {/if}
       {#each row.result.vulnerabilities as vuln (vuln.id)}
         {@const cve = vuln.aliases.find((a) => a.startsWith('CVE-')) ?? (vuln.id.startsWith('CVE-') ? vuln.id : undefined)}

@@ -9,6 +9,7 @@ pom.xml や SBOM から依存ソフトウェアを一覧表示し、OSS につ�
   - **悪用の状況**: 実際に悪用が確認されたもの（CISA KEV）と、30 日以内に悪用される確率の推定（EPSS）。一覧は「悪意あるパッケージ → KEV → 深刻度 → EPSS」の順に並ぶ
   - **悪意あるパッケージ**: OSV の `MAL-` で始まる報告（OpenSSF Malicious Packages）。深刻度は Critical として扱い、取り除くよう表示する
   - **直せる更新先**: 影響を受ける版の範囲から、すべての脆弱性を直せる最小の版を「同じ系列」「同じメジャー」「系列を問わない」の 3 つで求める。どの版でも直らないものは「修正版なし」として示す
+  - **推移的依存の直し方**: 推移的依存に脆弱性があるとき、詳細画面のボタンで、直接依存からの経路と「どの直接依存をどの版に上げれば解消するか」を調べる。deps.dev が解決した依存関係のグラフで、直接依存の新しい版が引き込む版を見て、OSV で解消を確かめる（系列ごとの最新版から調べ、系列の中は二分探索。直接依存 1 つにつき最大 20 版）。直接依存を上げずに版を固定する方法（Maven の dependencyManagement、npm の overrides、pip の constraints）も案内する。deps.dev の解決結果からの推定なので、実際の解決とは違うことがある
 - **サプライチェーン**: ソースリポジトリ、OpenSSF Scorecard（リポジトリの運用の健全性）、来歴（SLSA provenance・attestation）の有無と検証結果。設定の「判定」で OFF にできる（OFF のときはライセンスの補完に必要な分だけ deps.dev に照会する）
 - **サポート終了（EOL）**: 製品のサイクルごとのサポート状況・終了日・要件（Tomcat の必要 Java など）
 
@@ -147,7 +148,7 @@ software-update-checker/
 └─ src-tauri/              バックエンド（Rust、ロジックはすべてこちら）
    ├─ src/model.rs         共通データモデル（フロントの lib/types.ts と対応）
    ├─ src/importers/       入力形式ごとの取り込み（Importer トレイト）
-   ├─ src/checks/          チェック種別ごとの処理（versions / supply / vulns / exploit / eol / java / runtime、CVSS 計算）
+   ├─ src/checks/          チェック種別ごとの処理（versions / supply / vulns / exploit / eol / java / runtime / transitive、CVSS 計算）
    ├─ src/sources.rs       データソース（通信先）の登録表
    ├─ src/http.rs          HTTP クライアント・通信先の許可制御・再試行・ファイルキャッシュ
    ├─ src/netguard.rs      流量制御（間隔・上限・繰り返し遮断・一時停止）
@@ -306,8 +307,6 @@ gh attestation verify software-update-checker_0.1.0_windows-x64.exe --repo tamac
 ```
 
 ## 未対応・今後の課題
-
-- **推移的依存の直し方**: 推移的依存の脆弱性を消すために、どの直接依存をどの版に上げればよいかはまだ求めていません（部品ごとの「直せる更新先」と、詳細画面の「依存元」から辿る必要があります）。
 
 - **自動更新**: 未設定。`tauri-plugin-updater` を追加し、`tauri signer generate` で作った署名鍵の公開鍵と、更新情報の配信 URL（GitHub Releases など）を `tauri.conf.json` に設定する必要があります。秘密鍵はリポジトリに入れず CI のシークレットで管理します。
 - **配布用の署名**: Windows のコード署名（SignPath Foundation への申請を検討）、macOS の公証（Apple Developer Program）。

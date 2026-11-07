@@ -7,7 +7,7 @@ use crate::importers;
 use crate::knowledge::{self, JavaRule, KnowledgeStore, MergeSummary, RuleKey, SharedFile};
 use crate::model::{
     CheckOptions, CheckProgress, CheckResult, Component, Ecosystem, ImportResult, JavaRequirement, RuntimeRequirement,
-    RuntimeStatus,
+    RuntimeStatus, TransitiveFix,
 };
 use crate::sources::{self, DataSourceView};
 use std::path::PathBuf;
@@ -129,6 +129,23 @@ pub async fn runtime_requirements(
 ) -> Result<Vec<RuntimeRequirement>, String> {
     http.configure(&options);
     let out = checks::runtime::requirements(&http, &component, &versions, &options).await;
+    let _ = http.save().await;
+    Ok(out)
+}
+
+/// 推移的依存 `target` の脆弱性を、どの直接依存をどの版に上げれば解消できるかを調べる。
+/// `fix_hint` は対象自身の修正版（固定する方法の案内に使う）。
+#[tauri::command]
+pub async fn transitive_fix(
+    http: State<'_, Http>,
+    target: Component,
+    components: Vec<Component>,
+    vuln_ids: Vec<String>,
+    fix_hint: Option<String>,
+    options: CheckOptions,
+) -> Result<TransitiveFix, String> {
+    http.configure(&options);
+    let out = checks::transitive::find_fix(&http, &target, &components, &vuln_ids, fix_hint.as_deref(), &options).await;
     let _ = http.save().await;
     Ok(out)
 }

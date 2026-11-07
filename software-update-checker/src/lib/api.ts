@@ -17,6 +17,7 @@ import type {
   RuleKey,
   RuntimeRequirement,
   RuntimeStatus,
+  TransitiveFix,
 } from './types';
 
 export const importFile = (path: string) => invoke<ImportResult>('import_file', { path });
@@ -34,6 +35,14 @@ export const runtimeRequirements = (component: Component, versions: string[], op
   invoke<RuntimeRequirement[]>('runtime_requirements', { component, versions, options });
 
 export const runtimeStatus = (options: CheckOptions) => invoke<RuntimeStatus[]>('runtime_status', { options });
+
+export const transitiveFix = (
+  target: Component,
+  components: Component[],
+  vulnIds: string[],
+  fixHint: string | null,
+  options: CheckOptions,
+) => invoke<TransitiveFix>('transitive_fix', { target, components, vulnIds, fixHint, options });
 
 export const knowledgeList = (sharedFiles: string[]) => invoke<KnowledgeView>('knowledge_list', { sharedFiles });
 

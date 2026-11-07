@@ -275,6 +275,33 @@ pub struct RuntimeRequirement {
     pub error: Option<String>,
 }
 
+/// 推移的依存の脆弱性を、どの直接依存を上げれば解消できるか。
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TransitiveFix {
+    /// 直接依存 → … → 対象 の経路（部品 ID の列）
+    pub paths: Vec<Vec<String>>,
+    /// 経路の起点の直接依存ごとの結果
+    pub routes: Vec<RouteFix>,
+    /// 直接依存を上げずに対象の版を固定する方法の案内
+    pub pin_hint: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RouteFix {
+    /// 直接依存の部品 ID
+    pub direct_id: String,
+    pub current: Option<String>,
+    /// この版以上に上げれば解消する（deps.dev の解決結果からの推定）。見つからなければ `None`
+    pub fix_version: Option<String>,
+    /// その版が引き込む対象の版。引き込まなくなる場合は `None`
+    pub target_version: Option<String>,
+    /// 調べた版の数
+    pub probes: usize,
+    pub error: Option<String>,
+}
+
 /// 設定した実行環境のサポート状況（endoflife.date）。
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]

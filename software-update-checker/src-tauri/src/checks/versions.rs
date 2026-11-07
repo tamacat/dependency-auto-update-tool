@@ -18,15 +18,15 @@ const MAX_SERIES: usize = 12;
 
 #[derive(Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct PackageResponse {
+pub(super) struct PackageResponse {
     #[serde(default)]
-    versions: Vec<VersionEntry>,
+    pub(super) versions: Vec<VersionEntry>,
 }
 
 #[derive(Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct VersionEntry {
-    version_key: VersionKey,
+pub(super) struct VersionEntry {
+    pub(super) version_key: VersionKey,
     published_at: Option<String>,
     #[serde(default)]
     is_deprecated: bool,
@@ -35,8 +35,8 @@ struct VersionEntry {
 }
 
 #[derive(Deserialize, Clone)]
-struct VersionKey {
-    version: String,
+pub(super) struct VersionKey {
+    pub(super) version: String,
 }
 
 /// deps.dev API の URL（各部分はパーセントエンコードする）。
@@ -47,7 +47,7 @@ pub(super) fn url(segments: &[&str]) -> String {
 }
 
 /// パッケージのバージョン一覧。存在しなければ `Ok(None)`。
-async fn fetch_package(http: &Http, system: &str, name: &str, opts: &CheckOptions) -> Result<Option<PackageResponse>, String> {
+pub(super) async fn fetch_package(http: &Http, system: &str, name: &str, opts: &CheckOptions) -> Result<Option<PackageResponse>, String> {
     let res = http.get(&url(&["v3", "systems", system, "packages", name]), ttl(opts, 24)).await?;
     match res.status {
         404 => Ok(None),
