@@ -39,13 +39,17 @@ import java.util.Properties;
  *        (nfr-requirements/performance-requirements.md: 30-60s)
  * @param reportDirectory where {@link Reporter} writes its structured report
  *        file, relative to the current working directory unless absolute
+ * @param securityFixPolicy whether to look up known vulnerabilities and how far
+ *        beyond the normal policy a fixing version may be (see {@link SecurityFixPolicy})
+ * @param vulnerabilityDatabaseUrl the OSV-compatible API base URL (defaults to OSV.dev)
  */
 public record ToolConfiguration(CommitPushMode commitPushMode,
 		Map<DependencyCoordinate, VersionRangePolicy> versionRangePolicies,
 		Map<String, Integer> expectedJdkMajorByBranch, String repositoryBaseUrl, Duration repositoryQueryTimeout,
-		Path reportDirectory) {
+		Path reportDirectory, SecurityFixPolicy securityFixPolicy, String vulnerabilityDatabaseUrl) {
 
 	private static final String DEFAULT_REPOSITORY_BASE_URL = "https://repo1.maven.org/maven2/";
+	private static final String DEFAULT_VULNERABILITY_DATABASE_URL = "https://api.osv.dev/";
 	private static final int DEFAULT_TIMEOUT_SECONDS = 45;
 	private static final String DEFAULT_REPORT_DIR = "reports";
 	private static final String BRANCH_POLICY_PREFIX = "branch.";
@@ -58,7 +62,8 @@ public record ToolConfiguration(CommitPushMode commitPushMode,
 
 	public static ToolConfiguration defaults() {
 		return new ToolConfiguration(CommitPushMode.LOCAL_COMMIT_MANUAL_APPROVAL, Map.of(), Map.of(),
-				DEFAULT_REPOSITORY_BASE_URL, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS), Path.of(DEFAULT_REPORT_DIR));
+				DEFAULT_REPOSITORY_BASE_URL, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS), Path.of(DEFAULT_REPORT_DIR),
+				SecurityFixPolicy.DEFAULT, DEFAULT_VULNERABILITY_DATABASE_URL);
 	}
 
 	/** BR-3: the expected JDK major version for {@code branch}, if this tool is configured to operate on it. */
@@ -72,7 +77,13 @@ public record ToolConfiguration(CommitPushMode commitPushMode,
 		Map<String, Integer> updated = new LinkedHashMap<>(expectedJdkMajorByBranch);
 		updated.put(branch, major);
 		return new ToolConfiguration(commitPushMode, versionRangePolicies, updated, repositoryBaseUrl,
-				repositoryQueryTimeout, reportDirectory);
+				repositoryQueryTimeout, reportDirectory, securityFixPolicy, vulnerabilityDatabaseUrl);
+	}
+
+	/** Test/programmatic convenience: returns a copy with another security-fix policy. */
+	public ToolConfiguration withSecurityFixPolicy(SecurityFixPolicy policy) {
+		return new ToolConfiguration(commitPushMode, versionRangePolicies, expectedJdkMajorByBranch, repositoryBaseUrl,
+				repositoryQueryTimeout, reportDirectory, policy, vulnerabilityDatabaseUrl);
 	}
 
 	/**
@@ -114,6 +125,18 @@ public record ToolConfiguration(CommitPushMode commitPushMode,
 		}
 
 		String reportDir = props.getProperty("reportDir", DEFAULT_REPORT_DIR);
+
+		SecurityFixPolicy securityFixPolicy = SecurityFixPolicy.DEFAULT;
+		String securityStr = props.getProperty("securityFixPolicy");
+		if (securityStr != null && !securityStr.isBlank()) {
+			try {
+				securityFixPolicy = SecurityFixPolicy.valueOf(securityStr.trim());
+			} catch (IllegalArgumentException e) {
+				throw new IOException("Invalid securityFixPolicy value '" + securityStr + "' in " + path
+						+ " (expected OFF, PATCH_ONLY, MINOR or MAJOR)", e);
+			}
+		}
+		String vulnerabilityDbUrl = props.getProperty("vulnerabilityDatabaseUrl", DEFAULT_VULNERABILITY_DATABASE_URL);
 
 		Map<DependencyCoordinate, VersionRangePolicy> policies = new LinkedHashMap<>();
 		for (String name : props.stringPropertyNames()) {
@@ -161,6 +184,6 @@ public record ToolConfiguration(CommitPushMode commitPushMode,
 		}
 
 		return new ToolConfiguration(mode, policies, branchPolicies, repoUrl, Duration.ofSeconds(timeoutSeconds),
-				Path.of(reportDir));
+				Path.of(reportDir), securityFixPolicy, vulnerabilityDbUrl);
 	}
 }

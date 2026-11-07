@@ -15,13 +15,22 @@ import java.util.Objects;
  *        convenience at every call site that only has the candidate
  * @param candidateVersion the version Detector proposes to move to
  * @param classification stable vs. pre-release (business-rules.md BR-2)
+ * @param security known vulnerabilities in the current version and which of
+ *        them this candidate fixes ({@link SecurityStatus#NONE} when not looked up)
  */
 public record UpdateCandidate(VersionTarget target, String currentVersion, String candidateVersion,
-		VersionClassification classification) {
+		VersionClassification classification, SecurityStatus security) {
+
+	/** A candidate with no vulnerability information. */
+	public UpdateCandidate(VersionTarget target, String currentVersion, String candidateVersion,
+			VersionClassification classification) {
+		this(target, currentVersion, candidateVersion, classification, SecurityStatus.NONE);
+	}
 
 	public UpdateCandidate {
 		Objects.requireNonNull(target, "target");
 		Objects.requireNonNull(classification, "classification");
+		Objects.requireNonNull(security, "security");
 		if (currentVersion == null || currentVersion.isBlank()) {
 			throw new IllegalArgumentException("currentVersion must not be blank");
 		}
