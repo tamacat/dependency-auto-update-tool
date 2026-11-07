@@ -547,6 +547,19 @@ fieldset {
   margin-left: 4px;
   width: 14em;
 }
+.runtimes input {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+/* 設定した実行環境では動かない版 */
+td.danger {
+  color: var(--danger);
+  font-weight: 600;
+}
 .tz input[aria-invalid='true'] {
   border-color: var(--danger);
 }

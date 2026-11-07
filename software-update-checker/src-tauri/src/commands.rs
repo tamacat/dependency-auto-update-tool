@@ -5,7 +5,10 @@ use crate::checks;
 use crate::http::Http;
 use crate::importers;
 use crate::knowledge::{self, JavaRule, KnowledgeStore, MergeSummary, RuleKey, SharedFile};
-use crate::model::{CheckOptions, CheckProgress, CheckResult, Component, Ecosystem, ImportResult, JavaRequirement};
+use crate::model::{
+    CheckOptions, CheckProgress, CheckResult, Component, Ecosystem, ImportResult, JavaRequirement, RuntimeRequirement,
+    RuntimeStatus,
+};
 use crate::sources::{self, DataSourceView};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -114,6 +117,27 @@ pub async fn java_requirements(
         out.push(checks::java::resolve(&http, &store, &shared, group, &component.name, &v, can_fetch).await);
     }
     Ok(out)
+}
+
+/// 指定バージョンに必要な Node.js・Python を答える（npm・PyPI のみ）。
+#[tauri::command]
+pub async fn runtime_requirements(
+    http: State<'_, Http>,
+    component: Component,
+    versions: Vec<String>,
+    options: CheckOptions,
+) -> Result<Vec<RuntimeRequirement>, String> {
+    http.configure(&options);
+    let out = checks::runtime::requirements(&http, &component, &versions, &options).await;
+    let _ = http.save().await;
+    Ok(out)
+}
+
+/// 設定した実行環境の版のサポート状況。
+#[tauri::command]
+pub async fn runtime_status(http: State<'_, Http>, options: CheckOptions) -> Result<Vec<RuntimeStatus>, String> {
+    http.configure(&options);
+    Ok(checks::runtime::status(&http, &options).await)
 }
 
 #[derive(serde::Serialize)]

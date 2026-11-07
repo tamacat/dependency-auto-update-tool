@@ -15,6 +15,8 @@ import type {
   LogEntry,
   MergeSummary,
   RuleKey,
+  RuntimeRequirement,
+  RuntimeStatus,
 } from './types';
 
 export const importFile = (path: string) => invoke<ImportResult>('import_file', { path });
@@ -27,6 +29,11 @@ export const runChecks = (components: Component[], options: CheckOptions) =>
 
 export const javaRequirements = (component: Component, versions: string[], options: CheckOptions) =>
   invoke<JavaRequirement[]>('java_requirements', { component, versions, options });
+
+export const runtimeRequirements = (component: Component, versions: string[], options: CheckOptions) =>
+  invoke<RuntimeRequirement[]>('runtime_requirements', { component, versions, options });
+
+export const runtimeStatus = (options: CheckOptions) => invoke<RuntimeStatus[]>('runtime_status', { options });
 
 export const knowledgeList = (sharedFiles: string[]) => invoke<KnowledgeView>('knowledge_list', { sharedFiles });
 

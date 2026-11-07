@@ -38,6 +38,34 @@ export interface CheckOptions {
   sharedKnowledgeFiles: string[];
   /** OpenSSF Scorecard と来歴（SLSA provenance）を deps.dev から取得する */
   supplyChain: boolean;
+  /** 利用者が使っている実行環境の版（空なら未設定） */
+  runtimeTargets: RuntimeTargets;
+}
+
+export interface RuntimeTargets {
+  java: string;
+  node: string;
+  python: string;
+}
+
+/** npm の engines.node・PyPI の requires_python（src-tauri/src/model.rs の RuntimeRequirement と対応） */
+export interface RuntimeRequirement {
+  version: string;
+  runtime: 'node' | 'python';
+  /** 宣言された範囲そのまま。宣言が無ければ null */
+  constraint: string | null;
+  /** 範囲の下限 */
+  minimum: string | null;
+  /** 設定した版が範囲に入るか。未設定や範囲を読めなければ null */
+  targetOk: boolean | null;
+  error: string | null;
+}
+
+export interface RuntimeStatus {
+  runtime: 'java' | 'node' | 'python';
+  version: string;
+  eol: EolInfo | null;
+  error: string | null;
 }
 
 /** src-tauri/src/netguard.rs の NetworkSettings と対応。範囲外の値はバックエンドで丸められる。 */
@@ -315,4 +343,5 @@ export const DEFAULT_OPTIONS: CheckOptions = {
   network: { ...DEFAULT_NETWORK },
   sharedKnowledgeFiles: [],
   supplyChain: true,
+  runtimeTargets: { java: '', node: '', python: '' },
 };

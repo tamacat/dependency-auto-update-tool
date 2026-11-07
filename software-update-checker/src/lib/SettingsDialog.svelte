@@ -2,7 +2,18 @@
   import { getVersion } from '@tauri-apps/api/app';
   import { t } from './i18n';
   import { availableTimeZones, FONT_SCALES, isValidTimeZone, prefs, systemTimeZone } from './prefs.svelte';
-  import { DEFAULT_NETWORK, DEFAULT_OPTIONS, NETWORK_LIMITS, type CheckOptions, type DataSource, type NetworkSettings } from './types';
+  import * as api from './api';
+  import { date } from './format';
+  import {
+    DEFAULT_NETWORK,
+    DEFAULT_OPTIONS,
+    NETWORK_LIMITS,
+    type CheckOptions,
+    type DataSource,
+    type NetworkSettings,
+    type RuntimeStatus,
+    type RuntimeTargets,
+  } from './types';
   import type { MessageKey } from './i18n';
 
   let {
@@ -82,13 +93,48 @@
     options.disabledSources = enabled ? rest : [...rest, id];
   }
 
+  // ---- 使う実行環境。入力が落ち着いてからサポート状況を調べる
+  const RUNTIMES: { key: keyof RuntimeTargets; label: string; placeholder: string }[] = [
+    { key: 'java', label: 'Java', placeholder: '21' },
+    { key: 'node', label: 'Node.js', placeholder: '20.11' },
+    { key: 'python', label: 'Python', placeholder: '3.12' },
+  ];
+  let runtimeStatus = $state<Record<string, RuntimeStatus>>({});
+  const runtimeKey = $derived(JSON.stringify([options.runtimeTargets, options.disabledSources.includes('endoflife.date')]));
+  $effect(() => {
+    runtimeKey;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      api
+        .runtimeStatus($state.snapshot(options))
+        .then((list) => !cancelled && (runtimeStatus = Object.fromEntries(list.map((s) => [s.runtime, s]))))
+        .catch(() => !cancelled && (runtimeStatus = {}));
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  });
+
+  function runtimeStatusText(s: RuntimeStatus | undefined): { text: string; warn: boolean } | null {
+    if (!s) return null;
+    if (s.runtime === 'java') return { text: t('settings.runtimeJavaNote'), warn: false };
+    if (s.error) return { text: s.error, warn: false };
+    const e = s.eol;
+    if (!e || !e.cycle) return { text: t('settings.runtimeNoCycle'), warn: false };
+    if (e.status === 'eol') return { text: t('settings.runtimeEol', { cycle: e.cycle, date: date(e.eolFrom) }), warn: true };
+    if (e.eolFrom) return { text: t('settings.runtimeUntil', { cycle: e.cycle, date: date(e.eolFrom) }), warn: false };
+    return { text: t('settings.runtimeSupported', { cycle: e.cycle }), warn: false };
+  }
+
   function resetAll() {
     Object.assign(options, {
       ...DEFAULT_OPTIONS,
       disabledSources: [],
       network: { ...DEFAULT_NETWORK },
-      // 共有ナレッジの指定は判定の設定ではないので残す
+      // 共有ナレッジの指定と使っている実行環境は判定の設定ではないので残す
       sharedKnowledgeFiles: options.sharedKnowledgeFiles,
+      runtimeTargets: options.runtimeTargets,
     });
   }
 </script>
@@ -198,6 +244,23 @@
         <input type="number" min="1" max="20" bind:value={options.staleYears} />
         {t('settings.staleAfter')}
       </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>{t('settings.runtimes')}</legend>
+      <p class="muted small">{t('settings.runtimesNote')}</p>
+      <div class="form-grid runtimes">
+        {#each RUNTIMES as r (r.key)}
+          {@const status = runtimeStatusText(runtimeStatus[r.key])}
+          <label for="runtime-{r.key}">{r.label}</label>
+          <span class="row">
+            <input id="runtime-{r.key}" bind:value={options.runtimeTargets[r.key]} placeholder={r.placeholder} size="8" />
+            {#if status && options.runtimeTargets[r.key].trim()}
+              <span class="small" class:warn={status.warn} class:muted={!status.warn}>{status.text}</span>
+            {/if}
+          </span>
+        {/each}
+      </div>
     </fieldset>
 
     <fieldset>

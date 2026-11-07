@@ -76,6 +76,8 @@ pub const KEV: &str = "cisa-kev";
 pub const EPSS: &str = "epss";
 pub const MAVEN_CENTRAL: &str = "maven-central";
 pub const MAVEN_LOCAL: &str = "maven-local";
+pub const NPM_REGISTRY: &str = "npm-registry";
+pub const PYPI: &str = "pypi";
 
 pub const SOURCES: &[DataSource] = &[
     DataSource {
@@ -152,6 +154,28 @@ pub const SOURCES: &[DataSource] = &[
             "groupId, artifactId and version (in the URL). Only the end of the jar and a few classes are downloaded",
         ),
         docs: "https://central.sonatype.org/",
+    },
+    DataSource {
+        id: NPM_REGISTRY,
+        name: text("npm レジストリ", "npm registry"),
+        purpose: text(
+            "必要な Node.js（engines.node）の確認（詳細画面を開いたときのみ）",
+            "Required Node.js version (engines.node), only when a detail view is opened",
+        ),
+        hosts: &["registry.npmjs.org"],
+        sends: text("パッケージ名とバージョン（URL に含まれる）", "Package names and versions (in the URL)"),
+        docs: "https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md",
+    },
+    DataSource {
+        id: PYPI,
+        name: text("PyPI", "PyPI"),
+        purpose: text(
+            "必要な Python（requires_python）の確認（詳細画面を開いたときのみ）",
+            "Required Python version (requires_python), only when a detail view is opened",
+        ),
+        hosts: &["pypi.org"],
+        sends: text("パッケージ名とバージョン（URL に含まれる）", "Package names and versions (in the URL)"),
+        docs: "https://docs.pypi.org/api/json/",
     },
     DataSource {
         id: MAVEN_LOCAL,

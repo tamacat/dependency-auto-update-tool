@@ -24,6 +24,8 @@ const SOURCES: DataSource[] = [
   { id: 'epss', name: 'EPSS（FIRST）', purpose: '脆弱性が 30 日以内に悪用される確率の推定', hosts: ['api.first.org'], sends: '脆弱性の CVE ID（URL に含まれる）', docs: 'https://www.first.org/epss/api' },
   { id: 'endoflife.date', name: 'endoflife.date', purpose: '製品のサポート終了日・系列ごとの要件（対応 Java など）', hosts: ['endoflife.date'], sends: 'なし（製品一覧をまとめて取得し、照合は手元で行う）', docs: 'https://endoflife.date/docs/api/v1/' },
   { id: 'maven-central', name: 'Maven Central', purpose: 'jar のクラスファイルから必要な Java バージョンを判定（詳細画面を開いたときのみ）', hosts: ['repo1.maven.org'], sends: 'groupId・artifactId・バージョン（URL に含まれる）。jar は末尾と数クラス分だけ部分取得', docs: 'https://central.sonatype.org/' },
+  { id: 'npm-registry', name: 'npm レジストリ', purpose: '必要な Node.js（engines.node）の確認（詳細画面を開いたときのみ）', hosts: ['registry.npmjs.org'], sends: 'パッケージ名とバージョン（URL に含まれる）', docs: 'https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md' },
+  { id: 'pypi', name: 'PyPI', purpose: '必要な Python（requires_python）の確認（詳細画面を開いたときのみ）', hosts: ['pypi.org'], sends: 'パッケージ名とバージョン（URL に含まれる）', docs: 'https://docs.pypi.org/api/json/' },
   { id: 'maven-local', name: 'ローカルの Maven', purpose: '「Maven で SBOM 生成」で mvn を実行（依存解決のため、Maven の設定にあるリポジトリへ通信する）', hosts: [], sends: 'Maven が依存解決で行う通信（このツールの外で行われるため、通信ログには実行の開始・終了のみ記録）', docs: 'https://github.com/CycloneDX/cyclonedx-maven-plugin' },
 ];
 
@@ -35,6 +37,8 @@ const SOURCES_EN: Record<string, Pick<DataSource, 'name' | 'purpose' | 'sends'>>
   epss: { name: 'EPSS (FIRST)', purpose: 'Estimated probability that a vulnerability is exploited within 30 days', sends: 'CVE IDs of the vulnerabilities (in the URL)' },
   'endoflife.date': { name: 'endoflife.date', purpose: 'End-of-life dates and per-cycle requirements (supported Java, etc.)', sends: 'Nothing (the product list is downloaded and matched locally)' },
   'maven-central': { name: 'Maven Central', purpose: 'Detects the required Java version from jar class files (only when a detail view is opened)', sends: 'groupId, artifactId and version (in the URL). Only the end of the jar and a few classes are downloaded' },
+  'npm-registry': { name: 'npm registry', purpose: 'Required Node.js version (engines.node), only when a detail view is opened', sends: 'Package names and versions (in the URL)' },
+  pypi: { name: 'PyPI', purpose: 'Required Python version (requires_python), only when a detail view is opened', sends: 'Package names and versions (in the URL)' },
   'maven-local': { name: 'Local Maven', purpose: 'Runs mvn for "Generate SBOM with Maven" (Maven contacts the repositories in its settings to resolve dependencies)', sends: 'Whatever Maven sends to resolve dependencies (outside this tool; only the start and end are logged)' },
 };
 let language = 'ja';
@@ -195,6 +199,11 @@ export function install() {
           await sleep(150);
           return out;
         }
+        // 模擬データは Maven の部品だけなので、npm・PyPI の要件は返さない
+        case 'runtime_requirements':
+          return [];
+        case 'runtime_status':
+          return [];
         case 'knowledge_list':
           return {
             localPath: 'C:\\Users\\<user>\\AppData\\Roaming\\org.tamacat.software-update-checker\\java-requirements.json',
