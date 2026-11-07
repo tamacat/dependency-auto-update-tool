@@ -3446,7 +3446,7 @@ dependencies = [
 
 [[package]]
 name = "software-update-checker"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -3460,7 +3460,7 @@ dependencies = [
 
 [[package]]
 name = "software-update-checker-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "serde_json",
  "software-update-checker-core",
@@ -3469,7 +3469,7 @@ dependencies = [
 
 [[package]]
 name = "software-update-checker-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "miniz_oxide 0.8.9",
  "reqwest 0.12.28",

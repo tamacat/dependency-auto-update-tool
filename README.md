@@ -64,7 +64,7 @@ independent of the JDKs it validates each target branch with (see
 mvn clean package
 ```
 
-Produces `target/dependency-auto-update-tool-1.0.0.jar` (a plain jar with a
+Produces `target/dependency-auto-update-tool-1.1.0.jar` (a plain jar with a
 `Main-Class` manifest entry -- this tool has no runtime dependencies beyond
 the JDK, so no shading/fat-jar step is needed).
 
@@ -119,7 +119,7 @@ why, and `ToolConfigurationTest` for the regression test).
 ## Running
 
 ```
-java -jar target/dependency-auto-update-tool-1.0.0.jar <repoRoot>
+java -jar target/dependency-auto-update-tool-1.1.0.jar <repoRoot>
 ```
 
 The one required argument is the path to the target project's checkout to
@@ -130,7 +130,7 @@ file paths (both otherwise resolved relative to the current working
 directory):
 
 ```
-java -jar target/dependency-auto-update-tool-1.0.0.jar <repoRoot> [toolConfigPath] [jdkHomeConfigPath]
+java -jar target/dependency-auto-update-tool-1.1.0.jar <repoRoot> [toolConfigPath] [jdkHomeConfigPath]
 ```
 
 The report file lands under `reports/` (relative to the current working
