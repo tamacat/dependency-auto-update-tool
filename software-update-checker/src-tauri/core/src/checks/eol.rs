@@ -114,7 +114,7 @@ impl<'a> Index<'a> {
             mapping: mapping.prefixes.into_iter().collect(),
         };
         // 長いキーを優先
-        index.mapping.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+        index.mapping.sort_by_key(|(key, _)| std::cmp::Reverse(key.len()));
         for p in products {
             index.products.insert(p.name.as_str(), p);
             for id in p.identifiers.iter().filter(|i| i.kind == "purl") {
