@@ -84,46 +84,6 @@ fn private_temp_dir(base: &Path) -> std::io::Result<PathBuf> {
     Err(last_error.unwrap_or_else(|| std::io::Error::other("temporary directory")))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn temp_dirs_are_new_unpredictable_and_private() {
-        let base = std::env::temp_dir().join(format!("suc-mvn-test-{}", std::process::id()));
-        std::fs::create_dir_all(&base).unwrap();
-        let a = private_temp_dir(&base).unwrap();
-        let b = private_temp_dir(&base).unwrap();
-        assert_ne!(a, b, "毎回別のフォルダを作る");
-        let name = a.file_name().unwrap().to_string_lossy().into_owned();
-        assert!(name.starts_with("software-update-checker-mvn-") && name.len() == "software-update-checker-mvn-".len() + 16);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            assert_eq!(std::fs::metadata(&a).unwrap().permissions().mode() & 0o777, 0o700);
-        }
-        std::fs::remove_dir_all(base).unwrap();
-    }
-
-    #[test]
-    fn pom_xml_is_used_in_place_and_other_poms_are_copied() {
-        let base = std::env::temp_dir().join(format!("suc-mvn-copy-{}", std::process::id()));
-        std::fs::create_dir_all(&base).unwrap();
-        let project = base.join("pom.xml");
-        std::fs::write(&project, "<project/>").unwrap();
-        assert_eq!(working_pom(&project).unwrap(), project);
-
-        let published = base.join("app-1.0.pom");
-        std::fs::write(&published, "<project/>").unwrap();
-        let copy = working_pom(&published).unwrap();
-        assert_eq!(copy.file_name().unwrap(), "pom.xml");
-        assert_ne!(copy.parent().unwrap(), base.as_path(), "元のフォルダでは実行しない");
-        assert_eq!(std::fs::read_to_string(&copy).unwrap(), "<project/>");
-        std::fs::remove_dir_all(copy.parent().unwrap()).unwrap();
-        std::fs::remove_dir_all(base).unwrap();
-    }
-}
-
 fn run_maven(original_pom: &Path) -> Result<PathBuf, String> {
     let pom_path = &working_pom(original_pom)?;
     let project_dir = pom_path
@@ -165,5 +125,45 @@ fn run_maven(original_pom: &Path) -> Result<PathBuf, String> {
         Ok(bom)
     } else {
         Err(tr!("Maven は成功しましたが {} が見つかりません", "Maven succeeded but {} was not found", bom.display()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn temp_dirs_are_new_unpredictable_and_private() {
+        let base = std::env::temp_dir().join(format!("suc-mvn-test-{}", std::process::id()));
+        std::fs::create_dir_all(&base).unwrap();
+        let a = private_temp_dir(&base).unwrap();
+        let b = private_temp_dir(&base).unwrap();
+        assert_ne!(a, b, "毎回別のフォルダを作る");
+        let name = a.file_name().unwrap().to_string_lossy().into_owned();
+        assert!(name.starts_with("software-update-checker-mvn-") && name.len() == "software-update-checker-mvn-".len() + 16);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(std::fs::metadata(&a).unwrap().permissions().mode() & 0o777, 0o700);
+        }
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn pom_xml_is_used_in_place_and_other_poms_are_copied() {
+        let base = std::env::temp_dir().join(format!("suc-mvn-copy-{}", std::process::id()));
+        std::fs::create_dir_all(&base).unwrap();
+        let project = base.join("pom.xml");
+        std::fs::write(&project, "<project/>").unwrap();
+        assert_eq!(working_pom(&project).unwrap(), project);
+
+        let published = base.join("app-1.0.pom");
+        std::fs::write(&published, "<project/>").unwrap();
+        let copy = working_pom(&published).unwrap();
+        assert_eq!(copy.file_name().unwrap(), "pom.xml");
+        assert_ne!(copy.parent().unwrap(), base.as_path(), "元のフォルダでは実行しない");
+        assert_eq!(std::fs::read_to_string(&copy).unwrap(), "<project/>");
+        std::fs::remove_dir_all(copy.parent().unwrap()).unwrap();
+        std::fs::remove_dir_all(base).unwrap();
     }
 }
