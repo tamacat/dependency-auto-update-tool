@@ -3,6 +3,7 @@
 //!
 //! まず querybatch で各パッケージの脆弱性 ID だけを一括取得し、
 //! 重複を除いた ID ごとに詳細を取得する。
+//! 同じ脆弱性の別 ID の記録（GHSA と RUSTSEC など）は 1 件にまとめる。
 //! 影響を受ける版の範囲から、すべてを直せる最小の更新先（[`FixAdvice`]）も求める。
 
 use super::cvss;
@@ -280,6 +281,86 @@ fn to_vuln_info(v: &OsvVuln, package_name: &str, base_purl: &str) -> (VulnInfo, 
     (info, AffectedSpec::from_affected(&source))
 }
 
+/// 同じ脆弱性の別 ID の記録（GHSA と RUSTSEC など、互いを aliases に載せているもの）を 1 件にまとめる。
+///
+/// OSV は同じ問題を複数のデータベースの記録として返すことがある。そのままだと件数が水増しされ、
+/// `--ignore` で片方の ID を指定しても、もう片方が残ってしまう。
+/// 代表には、深刻度が分かっていて、GHSA で、ID の小さいものを選ぶ。他の ID は aliases に入れ、
+/// 深刻度・スコアは高い方、修正版と影響範囲は和集合を取る。
+fn merge_aliases(items: Vec<(VulnInfo, AffectedSpec)>) -> Vec<(VulnInfo, AffectedSpec)> {
+    let keys: Vec<BTreeSet<&str>> = items
+        .iter()
+        .map(|(v, _)| std::iter::once(v.id.as_str()).chain(v.aliases.iter().map(String::as_str)).collect())
+        .collect();
+    // 共通の ID を持つもの同士を同じグループに（推移的に）まとめる
+    let mut group: Vec<usize> = (0..items.len()).collect();
+    fn root(group: &mut [usize], i: usize) -> usize {
+        let mut r = i;
+        while group[r] != r {
+            r = group[r];
+        }
+        group[i] = r;
+        r
+    }
+    for i in 0..items.len() {
+        for j in 0..i {
+            if !keys[i].is_disjoint(&keys[j]) {
+                let (a, b) = (root(&mut group, i), root(&mut group, j));
+                group[a.max(b)] = a.min(b);
+            }
+        }
+    }
+    let mut members: Vec<Vec<(VulnInfo, AffectedSpec)>> = Vec::new();
+    let mut slot: HashMap<usize, usize> = HashMap::new();
+    for (i, item) in items.into_iter().enumerate() {
+        let r = root(&mut group, i);
+        let s = *slot.entry(r).or_insert_with(|| {
+            members.push(Vec::new());
+            members.len() - 1
+        });
+        members[s].push(item);
+    }
+
+    members
+        .into_iter()
+        .map(|mut list| {
+            list.sort_by(|(a, _), (b, _)| {
+                (b.severity != Severity::Unknown)
+                    .cmp(&(a.severity != Severity::Unknown))
+                    .then_with(|| b.id.starts_with("GHSA-").cmp(&a.id.starts_with("GHSA-")))
+                    .then_with(|| a.id.cmp(&b.id))
+            });
+            let mut rest = list.into_iter();
+            let (mut info, mut spec) = rest.next().expect("a group has at least one member");
+            let mut ids: BTreeSet<String> = info.aliases.drain(..).collect();
+            for (other, other_spec) in rest {
+                ids.insert(other.id);
+                ids.extend(other.aliases);
+                info.severity = info.severity.max(other.severity);
+                info.score = match (info.score, other.score) {
+                    (Some(a), Some(b)) => Some(a.max(b)),
+                    (a, b) => a.or(b),
+                };
+                info.fixed_versions.extend(other.fixed_versions);
+                info.malicious |= other.malicious;
+                info.summary = info.summary.or(other.summary);
+                info.published = match (info.published, other.published) {
+                    (Some(a), Some(b)) => Some(a.min(b)),
+                    (a, b) => a.or(b),
+                };
+                spec.intervals.extend(other_spec.intervals);
+                spec.versions.extend(other_spec.versions);
+            }
+            ids.remove(&info.id);
+            info.aliases = ids.into_iter().collect();
+            info.aliases.sort_by_key(|a| !a.starts_with("CVE-"));
+            info.fixed_versions.sort_by(|a, b| version::compare(a, b));
+            info.fixed_versions.dedup_by(|a, b| version::compare(a, b) == Ordering::Equal);
+            (info, spec)
+        })
+        .collect()
+}
+
 /// 一覧の並び順: 悪意あるパッケージ → 悪用確認済み（KEV）→ 深刻度 → EPSS → ID。
 pub(super) fn sort_vulns(list: &mut [VulnInfo]) {
     let epss = |v: &VulnInfo| v.epss.as_ref().map_or(0.0, |e| e.score);
@@ -394,6 +475,7 @@ pub async fn check(
                     ),
                 })
                 .collect();
+            let converted = merge_aliases(converted);
             if let (false, Some(current)) = (converted.is_empty(), c.version.as_deref()) {
                 let pairs: Vec<(&VulnInfo, &AffectedSpec)> = converted.iter().map(|(v, s)| (v, s)).collect();
                 r.fix = Some(fix_advice(current, &pairs, r.version.as_ref(), opts.include_prerelease));
@@ -465,6 +547,58 @@ mod tests {
             intervals: intervals.iter().map(|(s, e, i)| (s.to_string(), e.map(str::to_string), *i)).collect(),
             versions: Vec::new(),
         }
+    }
+
+    #[test]
+    fn merges_records_that_alias_each_other() {
+        // glib の例: GHSA と RUSTSEC が互いを aliases に載せている。RUSTSEC 側は深刻度が無い
+        let mut ghsa = vuln("GHSA-wrw7-89jp-8q8g", &["0.20.0"]);
+        ghsa.severity = Severity::Medium;
+        ghsa.aliases = vec!["RUSTSEC-2024-0429".into()];
+        let mut rustsec = vuln("RUSTSEC-2024-0429", &["0.20.0"]);
+        rustsec.severity = Severity::Unknown;
+        rustsec.aliases = vec!["GHSA-wrw7-89jp-8q8g".into()];
+        rustsec.summary = Some("Unsoundness".into());
+        let other = vuln("RUSTSEC-2026-0486", &["1.1.6"]);
+
+        // RUSTSEC が先に来ても、深刻度の分かる GHSA が代表になる
+        let merged = merge_aliases(vec![
+            (rustsec, spec(&[("0.15.0", Some("0.20.0"), false)])),
+            (other, spec(&[("1.0.0", Some("1.1.6"), false)])),
+            (ghsa, spec(&[("0.15.0", Some("0.20.0"), false)])),
+        ]);
+        assert_eq!(merged.len(), 2);
+        let (glib, glib_spec) = merged.iter().find(|(v, _)| v.id.starts_with("GHSA")).unwrap();
+        assert_eq!(glib.aliases, vec!["RUSTSEC-2024-0429"]);
+        assert_eq!(glib.severity, Severity::Medium);
+        assert_eq!(glib.fixed_versions, vec!["0.20.0"]);
+        assert_eq!(glib.summary.as_deref(), Some("Unsoundness"), "missing fields are filled from the others");
+        assert!(glib_spec.affects("0.18.5"));
+        assert_eq!(merged.iter().filter(|(v, _)| v.id == "RUSTSEC-2026-0486").count(), 1);
+    }
+
+    #[test]
+    fn merges_alias_chains_and_keeps_the_worst_severity() {
+        // A は CVE を、B は A と CVE を、C は CVE だけを載せている → 3 件とも同じもの
+        let mut a = vuln("GHSA-aaaa", &["2.0"]);
+        a.aliases = vec!["CVE-2026-1".into()];
+        a.severity = Severity::Low;
+        let mut b = vuln("PYSEC-2026-1", &["1.9"]);
+        b.aliases = vec!["GHSA-aaaa".into(), "CVE-2026-1".into()];
+        b.severity = Severity::High;
+        b.score = Some(8.1);
+        let mut c = vuln("OSV-2026-1", &[]);
+        c.aliases = vec!["CVE-2026-1".into()];
+        c.malicious = true;
+        let merged = merge_aliases(vec![(a, spec(&[])), (b, spec(&[])), (c, spec(&[]))]);
+        assert_eq!(merged.len(), 1);
+        let v = &merged[0].0;
+        assert_eq!(v.id, "GHSA-aaaa");
+        assert_eq!(v.aliases, vec!["CVE-2026-1", "OSV-2026-1", "PYSEC-2026-1"]);
+        assert_eq!(v.severity, Severity::High);
+        assert_eq!(v.score, Some(8.1));
+        assert_eq!(v.fixed_versions, vec!["1.9", "2.0"]);
+        assert!(v.malicious);
     }
 
     #[test]
