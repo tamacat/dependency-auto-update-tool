@@ -1,6 +1,7 @@
 package org.tamacat.depupdate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -11,8 +12,37 @@ import org.junit.jupiter.api.Test;
 class ValidationOutcomeClassificationTest {
 
 	@Test
-	void zeroExitCode_isGreen_regardlessOfOutput() {
+	void zeroExitCode_isGreen() {
 		assertEquals(ValidationOutcome.GREEN, ValidationOutcomeClassifier.classify(0, "anything at all"));
+		assertEquals(ValidationOutcome.GREEN, ValidationOutcomeClassifier.classify(0, null));
+	}
+
+	@Test
+	void zeroExitCode_withSlf4jProviderFailure_isIncompatible() {
+		// What logback-core 1.5 (Java 11) under JDK 8 prints: every test still passes, but logging is gone
+		String output = "[INFO] Running org.tamacat.ExampleTest\n"
+				+ "SLF4J(E): A service provider failed to instantiate:\n"
+				+ "org.slf4j.spi.SLF4JServiceProvider: Provider ch.qos.logback.classic.spi.LogbackServiceProvider could not be instantiated\n"
+				+ "SLF4J(W): No SLF4J providers were found.\n"
+				+ "[INFO] BUILD SUCCESS\n";
+		assertEquals(ValidationOutcome.INCOMPATIBLE, ValidationOutcomeClassifier.classify(0, output));
+		String where = ValidationOutcomeClassifier.runtimeIncompatibility(output).orElseThrow();
+		assertTrue(where.startsWith("SLF4J(E): A service provider failed to instantiate:"), where);
+		assertTrue(where.contains("LogbackServiceProvider"), where);
+	}
+
+	@Test
+	void zeroExitCode_withUnsupportedClassVersionError_isIncompatible() {
+		String output = "java.lang.UnsupportedClassVersionError: ch/qos/logback/core/Context has been compiled by "
+				+ "a more recent version of the Java Runtime (class file version 55.0), this version of the Java "
+				+ "Runtime only recognizes class file versions up to 52.0\n[INFO] BUILD SUCCESS\n";
+		assertEquals(ValidationOutcome.INCOMPATIBLE, ValidationOutcomeClassifier.classify(0, output));
+	}
+
+	@Test
+	void runtimeIncompatibility_isEmptyForANormalBuild() {
+		assertTrue(ValidationOutcomeClassifier.runtimeIncompatibility("[INFO] BUILD SUCCESS").isEmpty());
+		assertTrue(ValidationOutcomeClassifier.runtimeIncompatibility(null).isEmpty());
 	}
 
 	@Test

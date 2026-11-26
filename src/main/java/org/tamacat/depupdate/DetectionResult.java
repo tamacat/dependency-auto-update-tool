@@ -30,12 +30,19 @@ record CandidateFound(UpdateCandidate candidate) implements DetectionResult {
  * {@code PropertyIndirectedTarget}, this includes the case where a newer
  * version exists for some but not all members (business-rules.md BR-1a).
  * Reported, not validated. {@code security} says whether the current version
- * has known vulnerabilities that no allowed version fixes.
+ * has known vulnerabilities that no allowed version fixes. {@code javaExclusion}
+ * says which newer versions were left out because they need a newer Java than
+ * the branch's JDK ({@code null} when none were).
  */
-record NoUpdateAvailable(VersionTarget target, SecurityStatus security) implements DetectionResult {
+record NoUpdateAvailable(VersionTarget target, SecurityStatus security, JavaExclusion javaExclusion)
+		implements DetectionResult {
 
 	NoUpdateAvailable(VersionTarget target) {
 		this(target, SecurityStatus.NONE);
+	}
+
+	NoUpdateAvailable(VersionTarget target, SecurityStatus security) {
+		this(target, security, null);
 	}
 
 	NoUpdateAvailable {

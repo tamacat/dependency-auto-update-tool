@@ -17,14 +17,27 @@ import java.util.Objects;
  * @param classification stable vs. pre-release (business-rules.md BR-2)
  * @param security known vulnerabilities in the current version and which of
  *        them this candidate fixes ({@link SecurityStatus#NONE} when not looked up)
+ * @param javaExclusion newer versions left out because they need a newer Java
+ *        than the branch's JDK, or {@code null} when none were
  */
 public record UpdateCandidate(VersionTarget target, String currentVersion, String candidateVersion,
-		VersionClassification classification, SecurityStatus security) {
+		VersionClassification classification, SecurityStatus security, JavaExclusion javaExclusion) {
 
 	/** A candidate with no vulnerability information. */
 	public UpdateCandidate(VersionTarget target, String currentVersion, String candidateVersion,
 			VersionClassification classification) {
 		this(target, currentVersion, candidateVersion, classification, SecurityStatus.NONE);
+	}
+
+	/** A candidate with no newer version left out for its Java version. */
+	public UpdateCandidate(VersionTarget target, String currentVersion, String candidateVersion,
+			VersionClassification classification, SecurityStatus security) {
+		this(target, currentVersion, candidateVersion, classification, security, null);
+	}
+
+	/** The same candidate, recording which newer versions were left out for their Java version. */
+	public UpdateCandidate withJavaExclusion(JavaExclusion exclusion) {
+		return new UpdateCandidate(target, currentVersion, candidateVersion, classification, security, exclusion);
 	}
 
 	public UpdateCandidate {
