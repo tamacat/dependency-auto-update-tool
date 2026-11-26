@@ -12,7 +12,7 @@ policy you declare in `config/tool.properties` (see
 [Configuration](#configuration)); the tool ships no hardcoded branch list of
 its own. It was originally built for, and ships pre-configured for, its
 reference deployment: [`tamacat-httpd`](https://github.com/tamacat/tamacat-httpd)
-(branches `v1.6` -> JDK 8, `v2.0` -> JDK 25).
+(branches `v1.6` -> JDK 8, `v1.7` -> JDK 25, `v2.0` -> JDK 25).
 
 ## What it does, in order
 
@@ -85,6 +85,7 @@ reference values):
 
 ```
 jdkHome.v1.6=/opt/amazon-corretto-8
+jdkHome.v1.7=/opt/amazon-corretto-25
 jdkHome.v2.0=/opt/amazon-corretto-25
 ```
 
@@ -135,6 +136,50 @@ java -jar target/dependency-auto-update-tool-1.1.0.jar <repoRoot> [toolConfigPat
 
 The report file lands under `reports/` (relative to the current working
 directory) -- gitignored, one file per run.
+
+## Running on a schedule (GitHub Actions)
+
+The tool itself has no scheduler, but this repository ships a reusable
+workflow, [`.github/workflows/dependency-auto-update.yml`](.github/workflows/dependency-auto-update.yml),
+that runs it on a schedule from the target project's own repository and
+turns each branch's validated updates into a pull request for review:
+
+1. **setup** reads `branch.<name>.expectedJdkMajor` from the target
+   repository's `tool.properties` (default
+   `.github/dependency-auto-update/tool.properties` on its default branch)
+   and runs one job per branch.
+2. **update** checks out the branch, installs that branch's JDK plus JDK 25
+   for the tool, downloads the tool's jar from this repository's release
+   (verified with `gh attestation verify` against `release.yml` and the
+   tag), and runs it with `commitPushMode` forced to
+   `LOCAL_COMMIT_MANUAL_APPROVAL`. The new commits are saved as patches.
+   This job runs every candidate's `mvn clean verify`, so it has read-only
+   permission and no stored git credentials. A non-zero exit code fails
+   this job, so you get a notification when something needs attention.
+3. **pr** applies the patches without running any build, refuses them if
+   they change anything other than `pom.xml`, force-pushes them to
+   `dependency-auto-update/<branch>`, and opens a pull request against the
+   branch (or updates the open one).
+
+Nothing is merged automatically: the review step before merging is what
+catches a compromised but compatible release, as described in
+[Commit/push modes](#commitpush-modes).
+
+To set it up in a target repository:
+
+1. Copy [`examples/github-actions/dependency-auto-update.yml`](examples/github-actions/dependency-auto-update.yml)
+   to its `.github/workflows/`. Replace `<commit-sha>` with the commit of
+   this repository to use, and set `tool-version` to a release tag.
+2. Put a `tool.properties` at `.github/dependency-auto-update/tool.properties`
+   on its default branch (start from `config/tool.properties`).
+   `config/jdk-home.local.properties` is not needed: the workflow writes it.
+3. Under Settings > Actions > General > Workflow permissions, turn on
+   "Allow GitHub Actions to create and approve pull requests".
+
+Each run rebuilds the pull request branch from the target branch's latest
+commit, so commits added to that branch by hand are lost. A pull request
+made with `GITHUB_TOKEN` does not trigger other workflows (such as CodeQL)
+by itself; close and reopen it to run them.
 
 ## Commit/push modes
 
@@ -203,8 +248,10 @@ before, with `securityDiagnostic="..."`. The commit message becomes
 
 ## What this tool deliberately does not do
 
-- No scheduling/cron trigger -- this is on-demand logic only; run it however
-  and whenever you like (cron, a manual invocation, a CI job).
+- No scheduling/cron trigger in the tool itself -- it is on-demand logic
+  only; run it however and whenever you like (cron, a manual invocation, a
+  CI job). For GitHub, see
+  [Running on a schedule](#running-on-a-schedule-github-actions).
 - No transitive-dependency scanning -- only the target project's own direct,
   non-test-scope `pom.xml` dependencies are considered.
 - No vulnerability-free guarantee -- known vulnerabilities only steer which
