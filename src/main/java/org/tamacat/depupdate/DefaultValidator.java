@@ -77,6 +77,12 @@ public final class DefaultValidator implements Validator {
 		}
 
 		revertQuietly(originalText);
+		if (buildResult.exitCode() == 0) {
+			// The build passed, but a class could not be loaded at run time: show where, not the build's tail
+			String where = ValidationOutcomeClassifier.runtimeIncompatibility(buildResult.combinedOutput()).orElse("");
+			return new ValidationResult(candidate, outcome,
+					"mvn clean verify passed, but a class built for a newer Java could not be loaded: " + where);
+		}
 		return new ValidationResult(candidate, outcome, extractDiagnostic(buildResult.combinedOutput()));
 	}
 

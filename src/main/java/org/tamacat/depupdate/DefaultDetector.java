@@ -26,6 +26,13 @@ import java.util.Set;
  * all of them within the security-fix ceiling is chosen instead (its newest
  * fixing version). Security-fix candidates are returned first, so they are
  * validated and committed before anything else.
+ *
+ * <p>Java compatibility: when a {@link JavaRequirementClient} is wired in and
+ * pre-flight has resolved the branch's JDK, newer versions whose jars need a
+ * newer Java than that JDK are left out before anything is chosen -- for
+ * security fixes too. The Java a library needs is assumed not to go down as
+ * its version goes up, so the cut-off is found by binary search: usually one
+ * jar (the newest) is read, and at most about log2(n) + 1.
  */
 public final class DefaultDetector implements Detector {
 
@@ -37,8 +44,12 @@ public final class DefaultDetector implements Detector {
 	private final GitClient gitClient;
 	/** {@code null} when vulnerabilities are not looked up. */
 	private final VulnerabilityClient vulnerabilityClient;
+	/** {@code null} when the Java a version needs is not checked. */
+	private final JavaRequirementClient javaRequirementClient;
 
 	private volatile Path resolvedJdkHome;
+	/** The branch's JDK major version, set by a successful pre-flight; 0 until then. */
+	private volatile int branchJdkMajor;
 
 	/** A detector that does not look up vulnerabilities. */
 	public DefaultDetector(Path pomXmlPath, ToolConfiguration configuration, JdkHomeResolver jdkHomeResolver,
@@ -49,6 +60,13 @@ public final class DefaultDetector implements Detector {
 	public DefaultDetector(Path pomXmlPath, ToolConfiguration configuration, JdkHomeResolver jdkHomeResolver,
 			JdkVersionChecker jdkVersionChecker, VersionRepositoryClient repositoryClient, GitClient gitClient,
 			VulnerabilityClient vulnerabilityClient) {
+		this(pomXmlPath, configuration, jdkHomeResolver, jdkVersionChecker, repositoryClient, gitClient,
+				vulnerabilityClient, null);
+	}
+
+	public DefaultDetector(Path pomXmlPath, ToolConfiguration configuration, JdkHomeResolver jdkHomeResolver,
+			JdkVersionChecker jdkVersionChecker, VersionRepositoryClient repositoryClient, GitClient gitClient,
+			VulnerabilityClient vulnerabilityClient, JavaRequirementClient javaRequirementClient) {
 		this.pomXmlPath = pomXmlPath;
 		this.configuration = configuration;
 		this.jdkHomeResolver = jdkHomeResolver;
@@ -56,6 +74,7 @@ public final class DefaultDetector implements Detector {
 		this.repositoryClient = repositoryClient;
 		this.gitClient = gitClient;
 		this.vulnerabilityClient = vulnerabilityClient;
+		this.javaRequirementClient = javaRequirementClient;
 	}
 
 	/**
@@ -106,6 +125,7 @@ public final class DefaultDetector implements Detector {
 					String.valueOf(expected.getAsInt()));
 		}
 		this.resolvedJdkHome = jdkHome;
+		this.branchJdkMajor = expected.getAsInt();
 
 		String status;
 		try {
@@ -164,23 +184,109 @@ public final class DefaultDetector implements Detector {
 			}
 
 			String current = target.currentVersion();
+			// Only versions that the policy, or a security fix, could ever choose: the Java check
+			// below then reads no jar of a version that would not be proposed anyway
+			VersionRangePolicy widest = widestAllowed(policy);
 			List<String> newer = available.stream()
 					.filter(v -> VersionComparator.INSTANCE.compare(v, current) > 0)
+					.filter(v -> widest.allows(VersionBumpClassifier.classify(current, v)))
 					.sorted(VersionComparator.INSTANCE)
 					.toList();
-			List<String> inPolicy = newer.stream()
-					.filter(v -> policy.allows(VersionBumpClassifier.classify(current, v)))
-					.toList();
-			String normalBest = inPolicy.isEmpty() ? null : inPolicy.get(inPolicy.size() - 1);
-
-			Optional<VersionRangePolicy> ceiling = configuration.securityFixPolicy().ceiling();
-			if (vulnerabilityClient != null && ceiling.isPresent()) {
-				return detectWithSecurity(target, current, newer, normalBest, policy, ceiling.get());
+			JavaExclusion javaExclusion = null;
+			int jdk = branchJdkMajor;
+			if (javaRequirementClient != null && jdk > 0 && !newer.isEmpty()) {
+				javaExclusion = findJavaExclusion(members(target), newer, jdk);
+				if (javaExclusion != null) {
+					newer = newer.subList(0, newer.indexOf(javaExclusion.fromVersion()));
+				}
 			}
-			return normalResult(target, current, normalBest, SecurityStatus.NONE);
+			return withJavaExclusion(detectAmong(target, current, newer, policy), javaExclusion);
 		} catch (RepositoryQueryException e) {
 			return new QueryFailed(target, e.getMessage());
 		}
+	}
+
+	/** The dependency's own policy, or the security-fix ceiling when vulnerabilities are looked up and it is wider. */
+	private VersionRangePolicy widestAllowed(VersionRangePolicy policy) {
+		Optional<VersionRangePolicy> ceiling = configuration.securityFixPolicy().ceiling();
+		if (vulnerabilityClient != null && ceiling.isPresent() && ceiling.get().isAtLeastAsPermissiveAs(policy)) {
+			return ceiling.get();
+		}
+		return policy;
+	}
+
+	/** Chooses the candidate from {@code newer} (sorted ascending, already cut for the branch's Java). */
+	private DetectionResult detectAmong(VersionTarget target, String current, List<String> newer,
+			VersionRangePolicy policy) {
+		List<String> inPolicy = newer.stream()
+				.filter(v -> policy.allows(VersionBumpClassifier.classify(current, v)))
+				.toList();
+		String normalBest = inPolicy.isEmpty() ? null : inPolicy.get(inPolicy.size() - 1);
+
+		Optional<VersionRangePolicy> ceiling = configuration.securityFixPolicy().ceiling();
+		if (vulnerabilityClient != null && ceiling.isPresent()) {
+			return detectWithSecurity(target, current, newer, normalBest, policy, ceiling.get());
+		}
+		return normalResult(target, current, normalBest, SecurityStatus.NONE);
+	}
+
+	/**
+	 * The oldest of {@code newer} (sorted ascending) that needs a newer Java
+	 * than {@code jdk}, found by binary search, or {@code null} when the newest
+	 * one runs on {@code jdk}. A version whose need cannot be told counts as
+	 * runnable.
+	 */
+	private JavaExclusion findJavaExclusion(List<DependencyCoordinate> coordinates, List<String> newer, int jdk)
+			throws RepositoryQueryException {
+		Map<String, Integer> needed = new java.util.HashMap<>();
+		int last = newer.size() - 1;
+		if (requiredJava(coordinates, newer.get(last), needed) <= jdk) {
+			return null;
+		}
+		// newer[hi] needs too new a Java; find the first such index in [lo, hi]
+		int lo = 0;
+		int hi = last;
+		while (lo < hi) {
+			int mid = (lo + hi) >>> 1;
+			if (requiredJava(coordinates, newer.get(mid), needed) > jdk) {
+				hi = mid;
+			} else {
+				lo = mid + 1;
+			}
+		}
+		String from = newer.get(lo);
+		return new JavaExclusion(from, needed.get(from), jdk);
+	}
+
+	/** The Java a version needs over all members of the target (0 when it cannot be told), cached. */
+	private int requiredJava(List<DependencyCoordinate> coordinates, String version, Map<String, Integer> cache)
+			throws RepositoryQueryException {
+		Integer known = cache.get(version);
+		if (known != null) {
+			return known;
+		}
+		int highest = 0;
+		for (DependencyCoordinate c : coordinates) {
+			OptionalInt java = javaRequirementClient.requiredJavaMajor(c, version);
+			if (java.isPresent()) {
+				highest = Math.max(highest, java.getAsInt());
+			}
+		}
+		cache.put(version, highest);
+		return highest;
+	}
+
+	private static DetectionResult withJavaExclusion(DetectionResult result, JavaExclusion exclusion) {
+		if (exclusion == null) {
+			return result;
+		}
+		if (result instanceof CandidateFound cf) {
+			return new CandidateFound(cf.candidate().withJavaExclusion(exclusion));
+		}
+		if (result instanceof NoUpdateAvailable nu) {
+			return new NoUpdateAvailable(nu.target(), nu.security(), exclusion);
+		}
+		return result;
 	}
 
 	private static DetectionResult normalResult(VersionTarget target, String current, String candidate,

@@ -55,8 +55,11 @@ public final class Driver {
 		VulnerabilityClient vulnerabilityClient = configuration.securityFixPolicy() == SecurityFixPolicy.OFF ? null
 				: new OsvVulnerabilityClient(configuration.vulnerabilityDatabaseUrl(),
 						configuration.repositoryQueryTimeout());
+		// The Java each newer version needs is read from its jar, from the same repository
+		JavaRequirementClient javaRequirementClient = new MavenJarJavaRequirementClient(
+				configuration.repositoryBaseUrl(), configuration.repositoryQueryTimeout());
 		DefaultDetector detector = new DefaultDetector(pomXmlPath, configuration, jdkHomeResolver, jdkVersionChecker,
-				repositoryClient, gitClient, vulnerabilityClient);
+				repositoryClient, gitClient, vulnerabilityClient, javaRequirementClient);
 
 		try {
 			detector.validateEnvironment();

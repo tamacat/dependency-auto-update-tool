@@ -34,10 +34,14 @@ reference deployment: [`tamacat-httpd`](https://github.com/tamacat/tamacat-httpd
    vulnerabilities in the current versions (see
    [Security fixes](#security-fixes)); a version that fixes them may go
    beyond the normal policy, and security fixes are validated first.
+   Versions whose jars need a newer Java than the branch's JDK are left out
+   before anything is chosen (see [Java compatibility](#java-compatibility)).
 3. **Validation**: for each candidate, temporarily rewrites `pom.xml`, runs
    `mvn clean verify` under the branch's configured JDK, and classifies the
    result as safe (`GREEN`), genuinely incompatible (`INCOMPATIBLE`), or an
-   infrastructure hiccup unrelated to the candidate (`INFRA_FAILURE`).
+   infrastructure hiccup unrelated to the candidate (`INFRA_FAILURE`). A
+   build that passes but shows a class that could not be loaded because it
+   was built for a newer Java is `INCOMPATIBLE`, not `GREEN`.
 4. **Applying**: a `GREEN` candidate is committed. Depending on the
    configured mode, the tool either stops there (the default) or also
    pushes.
@@ -235,6 +239,38 @@ policy). A failed lookup does not stop the run: the target is handled as
 before, with `securityDiagnostic="..."`. The commit message becomes
 `fix(deps): bump ... (Fixes known vulnerabilities: GHSA-...)` instead of
 `chore(deps): ...`.
+
+## Java compatibility
+
+A version built for a newer Java than the branch's JDK is never proposed,
+including as a security fix. Passing `mvn clean verify` does not prove that
+a version runs: a library that is loaded only at run time can fail to load
+while every test still passes. For example, logback-core 1.5 (built for
+Java 11) on a JDK 8 branch: SLF4J cannot load logback, falls back to a
+logger that drops every message, and the build still succeeds.
+
+- **Before choosing**: Detection downloads the jars of newer versions from
+  the same Maven repository and reads the class-file version of every class
+  in them. `module-info.class` and `META-INF/versions/` (classes that an
+  older JVM ignores) are skipped. Versions that need a newer Java than
+  `branch.<name>.expectedJdkMajor` are left out. Only versions that the
+  dependency's policy or the security-fix ceiling could choose are checked.
+  The Java a library needs is assumed not to go down as its version goes
+  up, so the cut-off is found by binary search: usually only the newest jar
+  is read. For a `${property}` group, a version is left out if any member
+  needs a newer Java. A jar that cannot be downloaded makes the target
+  `QUERY_FAILED`. A version without a jar is not left out.
+- **After building**: a build that exits with 0 but whose output shows
+  `UnsupportedClassVersionError`, "has been compiled by a more recent
+  version of the Java Runtime", or SLF4J's "A service provider failed to
+  instantiate" is classified as `INCOMPATIBLE`.
+
+In the report, a target with left-out versions carries
+`javaExcluded="1.4.0 and newer need Java 11 (branch JDK 8)"`. If those were
+the only versions that fix a known vulnerability, the target is reported as
+`NO_UPDATE_AVAILABLE` with the vulnerabilities under `remaining`. Fixing
+them then needs a decision the tool cannot make, such as moving the branch
+to a newer Java.
 
 ## Exit code contract
 

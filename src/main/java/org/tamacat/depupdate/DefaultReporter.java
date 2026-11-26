@@ -47,10 +47,10 @@ public final class DefaultReporter implements Reporter {
 			emit(String.format(
 					"DETECTION target=\"%s\" outcome=CANDIDATE_FOUND current=%s candidate=%s classification=%s",
 					describe(c.target()), c.currentVersion(), c.candidateVersion(), c.classification())
-					+ security(c.security()));
+					+ security(c.security()) + javaExclusion(c.javaExclusion()));
 		} else if (result instanceof NoUpdateAvailable nu) {
 			emit(String.format("DETECTION target=\"%s\" outcome=NO_UPDATE_AVAILABLE", describe(nu.target()))
-					+ security(nu.security()));
+					+ security(nu.security()) + javaExclusion(nu.javaExclusion()));
 		} else if (result instanceof QueryFailed qf) {
 			emit(String.format("DETECTION target=\"%s\" outcome=QUERY_FAILED diagnostic=\"%s\"",
 					describe(qf.target()), sanitize(qf.diagnostic())));
@@ -116,6 +116,11 @@ public final class DefaultReporter implements Reporter {
 			sb.append(" securityDiagnostic=\"").append(sanitize(s.diagnostic())).append('"');
 		}
 		return sb.toString();
+	}
+
+	/** Newer versions left out for the Java they need, only when there are some. */
+	private static String javaExclusion(JavaExclusion e) {
+		return e == null ? "" : " javaExcluded=\"" + sanitize(e.describe()) + "\"";
 	}
 
 	private static String ids(java.util.Set<String> ids) {
