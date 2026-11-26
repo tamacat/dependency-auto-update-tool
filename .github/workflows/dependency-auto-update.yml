@@ -1,0 +1,315 @@
+# 依存の自動更新を定期的に実行し、結果をプルリクエストにする（呼び出して使うワークフロー）。
+#
+# 更新したいリポジトリ（例: tamacat-httpd）のワークフローから `uses:` で呼び出す。
+# 呼び出し側の例は examples/github-actions/dependency-auto-update.yml を参照。
+# このリポジトリ自身では動かない（workflow_call だけを受け付ける）。
+#
+# 流れ:
+#   1. setup  : 呼び出し側の tool.properties から branch.<name>.expectedJdkMajor を読み、対象ブランチの一覧を作る
+#   2. update : ブランチごとに、そのブランチの JDK でツールを実行する（commitPushMode は必ずローカルコミット）。
+#               できたコミットをパッチとして、レポートと一緒にアーティファクトに残す
+#   3. pr     : パッチを当て直し、専用ブランチ dependency-auto-update/<branch> に push して PR を作る（既にあれば更新）
+#
+# 供給網攻撃への備え:
+# - 新しい版の依存は `mvn clean verify` の中で実行される。何が起きても書き込み権限が漏れないよう、ビルドを動かす
+#   update ジョブは読み取り権限だけで動かし、認証情報を git に残さない。push と PR 作成は、ビルドを一切動かさない
+#   pr ジョブだけが行う。
+# - update ジョブの出力は信用しない。pr ジョブでは、パッチが pom.xml 以外を変えていたら止める。
+#   PR 本文に載せるレポートとコミット件名はコードブロックの中に入れる（@メンションやリンクにならないように）。
+# - ツールの jar は Release から取得し、このリポジトリの release.yml が該当タグからビルドしたことを
+#   artifact attestation で確かめてから使う。
+# - 自動マージはしない。PR は必ず人が確認してからマージする（ビルドが通っても、悪意のあるリリースは見抜けないため）。
+#
+# release.yml と同じ方針で、Actions はコミットの SHA で固定し（コメントは対応する版）、権限はジョブごとに最小限にする。
+# キャッシュは使わない。run の中では ${{ }} を直接使わず環境変数で渡す。
+
+name: Dependency auto-update
+
+on:
+  workflow_call:
+    inputs:
+      tool-version:
+        description: 使うツールの Release のタグ（例 v0.3.1）
+        required: true
+        type: string
+      config-path:
+        description: 呼び出し側リポジトリにある tool.properties のパス（既定ブランチから読む）
+        required: false
+        type: string
+        default: .github/dependency-auto-update/tool.properties
+      pr-branch-prefix:
+        description: PR 用ブランチ名の接頭辞（<接頭辞><対象ブランチ> になる）
+        required: false
+        type: string
+        default: dependency-auto-update/
+      tool-repository:
+        description: ツールの Release を取得するリポジトリ
+        required: false
+        type: string
+        default: tamacat/dependency-auto-update-tool
+
+permissions: {}
+
+jobs:
+  setup:
+    name: List target branches
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # 設定ファイルの取得だけ
+    outputs:
+      targets: ${{ steps.targets.outputs.targets }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: ${{ inputs.config-path }}
+          sparse-checkout-cone-mode: false
+
+      - name: Read branch.<name>.expectedJdkMajor from the config
+        id: targets
+        env:
+          CONFIG_PATH: ${{ inputs.config-path }}
+        run: |
+          if [ ! -f "$CONFIG_PATH" ]; then
+            echo "::error::Config file not found: $CONFIG_PATH"
+            exit 1
+          fi
+          # キーの中の \: などのエスケープは外す（java.util.Properties と同じ読み方）
+          targets=$(grep -E '^[[:space:]]*branch\..+\.expectedJdkMajor[[:space:]]*[=:]' "$CONFIG_PATH" \
+            | sed -E 's/^[[:space:]]*branch\.(.+)\.expectedJdkMajor[[:space:]]*[=:][[:space:]]*([^[:space:]]*)[[:space:]]*$/\1\t\2/' \
+            | sed -E 's/\\(.)/\1/g' \
+            | jq -R -s -c '
+                split("\n") | map(select(length > 0) | split("\t")
+                  | {branch: .[0], jdk: .[1], id: (.[0] | gsub("[^A-Za-z0-9._-]"; "_"))})')
+          echo "targets=$targets"
+          if [ "$(jq 'length' <<<"$targets")" -eq 0 ]; then
+            echo "::error::No branch.<name>.expectedJdkMajor entry in $CONFIG_PATH"
+            exit 1
+          fi
+          if ! jq -e 'all(.jdk | test("^[0-9]+$"))' <<<"$targets" >/dev/null; then
+            echo "::error::expectedJdkMajor must be an integer"
+            exit 1
+          fi
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
+
+  update:
+    name: Update (${{ matrix.target.branch }})
+    needs: setup
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # リポジトリとツールの Release の取得だけ。ここでは何も push しない
+    strategy:
+      fail-fast: false
+      max-parallel: 1 # Maven Central と OSV に一度に多くの問い合わせをしない
+      matrix:
+        target: ${{ fromJSON(needs.setup.outputs.targets) }}
+    env:
+      WORK: ${{ github.workspace }}/work
+      PROJECT: ${{ github.workspace }}/project
+    steps:
+      # 設定は既定ブランチから、更新対象は対象ブランチから取る
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: config-src
+          sparse-checkout: ${{ inputs.config-path }}
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: project
+          ref: ${{ matrix.target.branch }}
+
+      # 対象ブランチの JDK（検証用）と、ツール自身を動かす JDK 25。後に入れた 25 が JAVA_HOME になる
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        id: branch-jdk
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.target.jdk }}
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 25
+
+      # ビルド（依存のコード）が動く前に、トークンを使う処理を済ませる
+      - name: Download and verify the tool
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TOOL_REPO: ${{ inputs.tool-repository }}
+          TOOL_VERSION: ${{ inputs.tool-version }}
+        run: |
+          mkdir -p "$WORK/tool"
+          gh release download "$TOOL_VERSION" --repo "$TOOL_REPO" \
+            --pattern 'dependency-auto-update-tool-*.jar' --dir "$WORK/tool"
+          jars=( "$WORK"/tool/*.jar )
+          if [ "${#jars[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one jar in release $TOOL_VERSION, found: ${jars[*]}"
+            exit 1
+          fi
+          gh attestation verify "${jars[0]}" \
+            --repo "$TOOL_REPO" \
+            --source-ref "refs/tags/$TOOL_VERSION" \
+            --signer-workflow "$TOOL_REPO/.github/workflows/release.yml"
+          mv "${jars[0]}" "$WORK/tool/dependency-auto-update-tool.jar"
+
+      - name: Prepare the configuration
+        env:
+          CONFIG_PATH: ${{ inputs.config-path }}
+          BRANCH: ${{ matrix.target.branch }}
+          BRANCH_JDK_HOME: ${{ steps.branch-jdk.outputs.path }}
+        run: |
+          mkdir -p "$WORK/out/patches" "$WORK/out/reports"
+          # 設定を写し、push は必ずこのワークフロー（pr ジョブ）がするよう、後ろの行で上書きする
+          # （java.util.Properties は同じキーなら後の行が勝つ）
+          cp "config-src/$CONFIG_PATH" "$WORK/tool.properties"
+          {
+            echo
+            echo "# ---- dependency-auto-update.yml が上書き"
+            echo "commitPushMode=LOCAL_COMMIT_MANUAL_APPROVAL"
+            echo "reportDir=$WORK/out/reports"
+          } >> "$WORK/tool.properties"
+          # キーの中の \ : = 空白はエスケープする
+          key=$(printf '%s' "$BRANCH" | sed -E 's/([\\:= ])/\\\1/g')
+          printf 'jdkHome.%s=%s\n' "$key" "$BRANCH_JDK_HOME" > "$WORK/jdk-home.local.properties"
+          cat "$WORK/jdk-home.local.properties"
+          git -C "$PROJECT" config user.name 'github-actions[bot]'
+          git -C "$PROJECT" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C "$PROJECT" rev-parse HEAD > "$WORK/out/base-sha.txt"
+          printf '%s\n' "$BRANCH" > "$WORK/out/branch.txt"
+
+      - name: Run the tool
+        id: run
+        working-directory: work # レポートなどを対象リポジトリの中に作らない（次の実行で作業ツリーが汚れないように）
+        run: |
+          set +e
+          java -jar tool/dependency-auto-update-tool.jar "$PROJECT" tool.properties jdk-home.local.properties
+          code=$?
+          set -e
+          echo "$code" > out/exit-code.txt
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          base=$(cat out/base-sha.txt)
+          count=$(git -C "$PROJECT" rev-list --count "$base..HEAD")
+          echo "New commits: $count"
+          if [ "$count" -gt 0 ]; then
+            git -C "$PROJECT" format-patch --output-directory "$WORK/out/patches" "$base..HEAD"
+          fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: dependency-auto-update-${{ matrix.target.id }}
+          path: work/out/
+          if-no-files-found: warn
+          retention-days: 14
+
+      # 互換性がない・問い合わせに失敗したなどの「要確認」は、ジョブの失敗として知らせる（PR は作る）
+      - name: Fail if the tool needs attention
+        if: ${{ steps.run.outputs.code != '0' }}
+        env:
+          CODE: ${{ steps.run.outputs.code }}
+        run: |
+          echo "::error::The tool exited with $CODE -- see the report in the job log or the artifact"
+          exit 1
+
+  pr:
+    name: Pull request (${{ matrix.target.branch }})
+    needs: [setup, update]
+    if: ${{ !cancelled() && needs.setup.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # PR 用ブランチの push
+      pull-requests: write # PR の作成・更新
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.setup.outputs.targets) }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        id: download
+        continue-on-error: true # update ジョブがツールの実行前に失敗したときは無い
+        with:
+          name: dependency-auto-update-${{ matrix.target.id }}
+          path: out
+
+      - name: Check for new commits
+        id: check
+        run: |
+          if [ -f out/base-sha.txt ] && ls out/patches/*.patch >/dev/null 2>&1; then
+            echo "base=$(cat out/base-sha.txt)" >> "$GITHUB_OUTPUT"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No new commits for this branch."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: ${{ steps.check.outputs.changed == 'true' }}
+        with:
+          path: project
+          ref: ${{ steps.check.outputs.base }}
+
+      - name: Apply the commits and check what they change
+        if: ${{ steps.check.outputs.changed == 'true' }}
+        working-directory: project
+        env:
+          BASE: ${{ steps.check.outputs.base }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git am --keep-cr "$GITHUB_WORKSPACE"/out/patches/*.patch
+          changed=$(git diff --name-only "$BASE" HEAD)
+          echo "Changed files: $changed"
+          if [ "$changed" != "pom.xml" ]; then
+            echo "::error::The update commits change files other than pom.xml: $changed"
+            exit 1
+          fi
+
+      - name: Push and open or update the pull request
+        if: ${{ steps.check.outputs.changed == 'true' }}
+        working-directory: project
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ steps.check.outputs.base }}
+          BRANCH: ${{ matrix.target.branch }}
+          PR_BRANCH: ${{ inputs.pr-branch-prefix }}${{ matrix.target.branch }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # 毎回、対象ブランチの最新から作り直す（PR 用ブランチに手で足したコミットは消える）
+          git push --force origin "HEAD:refs/heads/$PR_BRANCH"
+
+          # コードブロックを閉じられないよう、~~~~ を含む行は落とす
+          fence() { grep -v '~~~~' || true; }
+          if git log --format=%s "$BASE..HEAD" | grep -q '^fix(deps)'; then
+            title="fix(deps): dependency updates for $BRANCH (includes security fixes)"
+          else
+            title="chore(deps): dependency updates for $BRANCH"
+          fi
+          {
+            echo "依存の自動更新（dependency-auto-update-tool）が \`$BRANCH\` 向けに作った更新です。"
+            echo "各更新は \`mvn clean verify\` が通ることを確かめてあります。"
+            echo
+            echo "**マージの前に、各依存のリリースノートと変更内容を確認してください。** ビルドとテストが通っても、"
+            echo "悪意のある（中身が改ざんされた）リリースは見抜けません。"
+            echo
+            echo "### Commits"
+            echo '~~~~'
+            git log --reverse --format='%s' "$BASE..HEAD" | fence
+            echo '~~~~'
+            echo
+            echo "### Report"
+            echo '~~~~'
+            cat "$GITHUB_WORKSPACE"/out/reports/*.log 2>/dev/null | fence | head -c 50000
+            echo '~~~~'
+            echo
+            echo "Tool exit code: $(cat "$GITHUB_WORKSPACE/out/exit-code.txt" 2>/dev/null || echo unknown) / Run: $RUN_URL"
+          } > "$RUNNER_TEMP/body.md"
+
+          number=$(gh pr list --head "$PR_BRANCH" --base "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --title "$title" --body-file "$RUNNER_TEMP/body.md"
+            echo "Updated pull request #$number"
+          else
+            gh pr create --base "$BRANCH" --head "$PR_BRANCH" --title "$title" --body-file "$RUNNER_TEMP/body.md"
+          fi

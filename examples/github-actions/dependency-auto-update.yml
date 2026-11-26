@@ -1,0 +1,39 @@
+# 依存の自動更新を定期的に実行する、呼び出し側のワークフローの例。
+#
+# 更新したいリポジトリ（例: tamacat-httpd）の .github/workflows/ にこのファイルを置き、
+# 同じリポジトリの既定ブランチに .github/dependency-auto-update/tool.properties を置く
+# （このリポジトリの config/tool.properties を写して、branch.<name>.expectedJdkMajor を合わせる）。
+# 対象ブランチごとにツールを実行し、更新があれば dependency-auto-update/<branch> から PR を作る。
+#
+# 必要なリポジトリ設定:
+#   Settings > Actions > General > Workflow permissions の
+#   「Allow GitHub Actions to create and approve pull requests」をオンにする。
+#
+# 補足:
+# - GITHUB_TOKEN で作った PR では、その PR に対する他のワークフロー（CodeQL など）は自動では動かない。
+#   PR を一度閉じて開き直すと動く。
+# - 公開リポジトリでは、60 日間コミットがないとスケジュール実行が止まる。Actions タブから再開できる。
+
+name: Dependency auto-update
+
+on:
+  schedule:
+    - cron: '0 18 * * 0' # 毎週月曜 3:00（日本時間）
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: dependency-auto-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    # 呼び出すワークフローはコミットの SHA で固定する（<commit-sha> を、使う版のコミットに置き換える）
+    uses: tamacat/dependency-auto-update-tool/.github/workflows/dependency-auto-update.yml@<commit-sha> # main
+    permissions:
+      contents: write # PR 用ブランチの push（ビルドを動かすジョブは読み取りだけで動く）
+      pull-requests: write # PR の作成・更新
+    with:
+      tool-version: v0.3.1 # 使うツールの Release のタグ
+      # config-path: .github/dependency-auto-update/tool.properties
