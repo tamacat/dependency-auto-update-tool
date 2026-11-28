@@ -265,6 +265,13 @@ logger that drops every message, and the build still succeeds.
   version of the Java Runtime", or SLF4J's "A service provider failed to
   instantiate" is classified as `INCOMPATIBLE`.
 
+When Maven Central or OSV.dev answers that it is busy (HTTP 429, 502, 503
+or 504), the request is sent again up to 3 more times. The tool waits for
+the time given in `Retry-After`, or for 2, 4 and then 8 seconds, and never
+more than 60 seconds at a time. If the last answer is still busy, the target
+is `QUERY_FAILED`. Maven Central answers 429 to an address that it is
+throttling for the moment, such as a shared GitHub Actions runner.
+
 In the report, a target with left-out versions carries
 `javaExcluded="1.4.0 and newer need Java 11 (branch JDK 8)"`. If those were
 the only versions that fix a known vulnerability, the target is reported as

@@ -25,14 +25,18 @@ import org.xml.sax.InputSource;
  */
 public final class MavenCentralVersionRepositoryClient implements VersionRepositoryClient {
 
-	private final HttpClient httpClient;
+	private final RetryingHttp http;
 	private final String baseUrl;
 	private final Duration timeout;
 
 	public MavenCentralVersionRepositoryClient(String baseUrl, Duration timeout) {
+		this(baseUrl, timeout, RetryingHttp.THREAD_SLEEP);
+	}
+
+	MavenCentralVersionRepositoryClient(String baseUrl, Duration timeout, RetryingHttp.Sleeper sleeper) {
 		this.baseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
 		this.timeout = timeout;
-		this.httpClient = HttpClient.newBuilder().connectTimeout(timeout).build();
+		this.http = new RetryingHttp(HttpClient.newBuilder().connectTimeout(timeout).build(), sleeper);
 	}
 
 	@Override
@@ -41,7 +45,7 @@ public final class MavenCentralVersionRepositoryClient implements VersionReposit
 		String url = baseUrl + groupPath + "/" + coordinate.artifactId() + "/maven-metadata.xml";
 		try {
 			HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(timeout).GET().build();
-			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+			HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
 			if (response.statusCode() != 200) {
 				throw new RepositoryQueryException(
 						"HTTP " + response.statusCode() + " querying " + url + " for " + coordinate);

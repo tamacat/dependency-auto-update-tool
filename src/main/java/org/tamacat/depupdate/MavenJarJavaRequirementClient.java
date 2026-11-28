@@ -31,15 +31,19 @@ public final class MavenJarJavaRequirementClient implements JavaRequirementClien
 
 	private static final int CLASS_MAGIC = 0xCAFEBABE;
 
-	private final HttpClient httpClient;
+	private final RetryingHttp http;
 	private final String baseUrl;
 	private final Duration timeout;
 
 	public MavenJarJavaRequirementClient(String baseUrl, Duration timeout) {
+		this(baseUrl, timeout, RetryingHttp.THREAD_SLEEP);
+	}
+
+	MavenJarJavaRequirementClient(String baseUrl, Duration timeout, RetryingHttp.Sleeper sleeper) {
 		this.baseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
 		this.timeout = timeout;
-		this.httpClient = HttpClient.newBuilder().connectTimeout(timeout)
-				.followRedirects(HttpClient.Redirect.NORMAL).build();
+		this.http = new RetryingHttp(HttpClient.newBuilder().connectTimeout(timeout)
+				.followRedirects(HttpClient.Redirect.NORMAL).build(), sleeper);
 	}
 
 	@Override
@@ -49,7 +53,7 @@ public final class MavenJarJavaRequirementClient implements JavaRequirementClien
 				+ "/" + coordinate.artifactId() + "-" + version + ".jar";
 		try {
 			HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(timeout).GET().build();
-			HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+			HttpResponse<InputStream> response = http.send(request, HttpResponse.BodyHandlers.ofInputStream());
 			try (InputStream body = response.body()) {
 				if (response.statusCode() == 404) {
 					// No jar (a pom-only artifact, for example): nothing to tell
